@@ -14,7 +14,7 @@ Manages application-level settings for a Clerk instance. This is a singleton res
 
 ```terraform
 resource "clerk_application_settings" "this" {
-  enabled              = true
+  enable_organizations = true
   admin_delete_enabled = true
 }
 ```
@@ -24,7 +24,7 @@ resource "clerk_application_settings" "this" {
 
 ### Required
 
-- `enabled` (Boolean) Whether organizations are enabled for this instance.
+- `enable_organizations` (Boolean) Whether organizations are enabled for this instance.
 
 ### Optional
 
