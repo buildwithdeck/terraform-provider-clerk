@@ -1,4 +1,4 @@
-resource "clerk_organization_settings" "this" {
+resource "clerk_application_settings" "this" {
   enabled              = true
   admin_delete_enabled = true
 }

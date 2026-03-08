@@ -17,16 +17,11 @@ func TestAccOrganizationResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and verify
 			{
-				Config: testAccOrganizationConfig("tf-acc-test-org", "tf-acc-test-org"),
+				Config: testAccOrganizationConfig("tf-acc-test-org"),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"clerk_organization.test",
 						tfjsonpath.New("name"),
-						knownvalue.StringExact("tf-acc-test-org"),
-					),
-					statecheck.ExpectKnownValue(
-						"clerk_organization.test",
-						tfjsonpath.New("slug"),
 						knownvalue.StringExact("tf-acc-test-org"),
 					),
 				},
@@ -39,7 +34,7 @@ func TestAccOrganizationResource(t *testing.T) {
 			},
 			// Update
 			{
-				Config: testAccOrganizationConfig("tf-acc-test-org-updated", "tf-acc-test-org-updated"),
+				Config: testAccOrganizationConfig("tf-acc-test-org-updated"),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"clerk_organization.test",
@@ -52,11 +47,10 @@ func TestAccOrganizationResource(t *testing.T) {
 	})
 }
 
-func testAccOrganizationConfig(name, slug string) string {
+func testAccOrganizationConfig(name string) string {
 	return fmt.Sprintf(`
 resource "clerk_organization" "test" {
   name = %[1]q
-  slug = %[2]q
 }
-`, name, slug)
+`, name)
 }

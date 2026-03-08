@@ -18,3 +18,11 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("CLERK_API_KEY must be set for acceptance tests")
 	}
 }
+
+func testAccPreCheckPlatform(t *testing.T) {
+	t.Helper()
+	testAccPreCheck(t)
+	if os.Getenv("CLERK_PLATFORM_API_KEY") == "" {
+		t.Fatal("CLERK_PLATFORM_API_KEY must be set for acceptance tests")
+	}
+}

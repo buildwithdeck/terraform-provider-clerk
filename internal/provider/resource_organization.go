@@ -50,11 +50,11 @@ func (r *OrganizationResource) Configure(_ context.Context, req resource.Configu
 	if req.ProviderData == nil {
 		return
 	}
-	_, ok := req.ProviderData.(string)
+	_, ok := req.ProviderData.(ProviderData)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			"Expected string (API key), got something else. Please report this issue.",
+			"Expected ProviderData, got something else. Please report this issue.",
 		)
 		return
 	}
