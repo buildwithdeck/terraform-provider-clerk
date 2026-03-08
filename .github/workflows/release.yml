@@ -1,7 +1,7 @@
 # Terraform Provider release workflow.
 # This workflow builds, signs, and publishes releases to GitHub when a version
 # tag (v*) is pushed. The Terraform Registry automatically picks up new releases.
-name: Release
+name: Release to Terraform Registry
 
 on:
   push:

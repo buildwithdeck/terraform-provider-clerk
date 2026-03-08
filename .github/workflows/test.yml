@@ -1,6 +1,6 @@
 # Runs acceptance tests against an ephemeral Clerk application.
 # The CLERK_PLATFORM_API_KEY secret must be set in the repository settings.
-name: Tests
+name: Acceptance Tests
 
 on:
   pull_request:
