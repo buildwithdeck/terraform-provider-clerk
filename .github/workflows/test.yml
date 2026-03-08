@@ -1,0 +1,33 @@
+# Runs acceptance tests against an ephemeral Clerk application.
+# The CLERK_PLATFORM_API_KEY secret must be set in the repository settings.
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go build ./...
+
+  acceptance:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run acceptance tests
+        run: go test ./internal/provider/ -v -timeout 300s
+        env:
+          TF_ACC: "1"
+          CLERK_PLATFORM_API_KEY: ${{ secrets.CLERK_PLATFORM_API_KEY }}
