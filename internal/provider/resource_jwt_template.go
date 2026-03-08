@@ -50,11 +50,11 @@ func (r *JWTTemplateResource) Configure(_ context.Context, req resource.Configur
 	if req.ProviderData == nil {
 		return
 	}
-	_, ok := req.ProviderData.(string)
+	_, ok := req.ProviderData.(ProviderData)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			"Expected string (API key), got something else. Please report this issue.",
+			"Expected ProviderData, got something else. Please report this issue.",
 		)
 		return
 	}
@@ -280,7 +280,7 @@ func (r *JWTTemplateResource) ImportState(ctx context.Context, req resource.Impo
 func mapResponseToModel(tmpl *clerkgo.JWTTemplate, model *JWTTemplateResourceModel) {
 	model.ID = types.StringValue(tmpl.ID)
 	model.Name = types.StringValue(tmpl.Name)
-	model.Claims = types.StringValue(string(tmpl.Claims))
+	model.Claims = types.StringValue(normalizeJSON(string(tmpl.Claims)))
 	model.Lifetime = types.Int64Value(tmpl.Lifetime)
 	model.AllowedClockSkew = types.Int64Value(tmpl.AllowedClockSkew)
 	model.CustomSigningKey = types.BoolValue(tmpl.CustomSigningKey)

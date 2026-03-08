@@ -23,3 +23,4 @@ provider "clerk" {
 ### Optional
 
 - `api_key` (String, Sensitive) Clerk secret key. Can also be set via CLERK_API_KEY environment variable.
+- `platform_api_key` (String, Sensitive) Clerk Platform API key (beta). Required for application-level resources. Can also be set via CLERK_PLATFORM_API_KEY environment variable.

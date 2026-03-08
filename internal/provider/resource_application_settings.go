@@ -16,19 +16,19 @@ import (
 )
 
 var (
-	_ resource.Resource              = &OrganizationSettingsResource{}
-	_ resource.ResourceWithConfigure = &OrganizationSettingsResource{}
+	_ resource.Resource              = &ApplicationSettingsResource{}
+	_ resource.ResourceWithConfigure = &ApplicationSettingsResource{}
 )
 
-func NewOrganizationSettingsResource() resource.Resource {
-	return &OrganizationSettingsResource{}
+func NewApplicationSettingsResource() resource.Resource {
+	return &ApplicationSettingsResource{}
 }
 
-type OrganizationSettingsResource struct {
+type ApplicationSettingsResource struct {
 	configured bool
 }
 
-type OrganizationSettingsResourceModel struct {
+type ApplicationSettingsResourceModel struct {
 	ID                    types.String `tfsdk:"id"`
 	Enabled               types.Bool   `tfsdk:"enabled"`
 	MaxAllowedMemberships types.Int64  `tfsdk:"max_allowed_memberships"`
@@ -40,28 +40,28 @@ type OrganizationSettingsResourceModel struct {
 	DomainsDefaultRole    types.String `tfsdk:"domains_default_role"`
 }
 
-func (r *OrganizationSettingsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *ApplicationSettingsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
-	_, ok := req.ProviderData.(string)
+	_, ok := req.ProviderData.(ProviderData)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			"Expected string (API key), got something else. Please report this issue.",
+			"Expected ProviderData, got something else. Please report this issue.",
 		)
 		return
 	}
 	r.configured = true
 }
 
-func (r *OrganizationSettingsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_organization_settings"
+func (r *ApplicationSettingsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_application_settings"
 }
 
-func (r *OrganizationSettingsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *ApplicationSettingsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages organization settings for a Clerk instance. This is a singleton resource — only one can exist per Clerk application.",
+		Description: "Manages application-level settings for a Clerk instance. This is a singleton resource — only one can exist per instance.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
@@ -130,30 +130,30 @@ func (r *OrganizationSettingsResource) Schema(_ context.Context, _ resource.Sche
 	}
 }
 
-func (r *OrganizationSettingsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan OrganizationSettingsResourceModel
+func (r *ApplicationSettingsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan ApplicationSettingsResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	settings, err := instancesettings.UpdateOrganizationSettings(ctx, buildOrgSettingsParams(&plan))
+	settings, err := instancesettings.UpdateOrganizationSettings(ctx, buildAppSettingsParams(&plan))
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to update organization settings", err.Error())
+		resp.Diagnostics.AddError("Unable to update application settings", err.Error())
 		return
 	}
 
-	mapOrgSettingsResponseToModel(settings, &plan)
-	plan.ID = types.StringValue("organization_settings")
+	mapAppSettingsResponseToModel(settings, &plan)
+	plan.ID = types.StringValue("application_settings")
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-	tflog.Debug(ctx, "Created organization settings")
+	tflog.Debug(ctx, "Created application settings")
 }
 
-func (r *OrganizationSettingsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state OrganizationSettingsResourceModel
+func (r *ApplicationSettingsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state ApplicationSettingsResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -162,54 +162,54 @@ func (r *OrganizationSettingsResource) Read(ctx context.Context, req resource.Re
 
 	// The Clerk SDK has no GET endpoint for organization settings.
 	// Re-apply current state via Update to get the latest values back.
-	settings, err := instancesettings.UpdateOrganizationSettings(ctx, buildOrgSettingsParams(&state))
+	settings, err := instancesettings.UpdateOrganizationSettings(ctx, buildAppSettingsParams(&state))
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to read organization settings", err.Error())
+		resp.Diagnostics.AddError("Unable to read application settings", err.Error())
 		return
 	}
 
-	mapOrgSettingsResponseToModel(settings, &state)
+	mapAppSettingsResponseToModel(settings, &state)
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r *OrganizationSettingsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan OrganizationSettingsResourceModel
+func (r *ApplicationSettingsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan ApplicationSettingsResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	settings, err := instancesettings.UpdateOrganizationSettings(ctx, buildOrgSettingsParams(&plan))
+	settings, err := instancesettings.UpdateOrganizationSettings(ctx, buildAppSettingsParams(&plan))
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to update organization settings", err.Error())
+		resp.Diagnostics.AddError("Unable to update application settings", err.Error())
 		return
 	}
 
-	mapOrgSettingsResponseToModel(settings, &plan)
-	plan.ID = types.StringValue("organization_settings")
+	mapAppSettingsResponseToModel(settings, &plan)
+	plan.ID = types.StringValue("application_settings")
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-	tflog.Debug(ctx, "Updated organization settings")
+	tflog.Debug(ctx, "Updated application settings")
 }
 
-func (r *OrganizationSettingsResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// "Deleting" organization settings means disabling organizations.
+func (r *ApplicationSettingsResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
+	// "Deleting" application settings means disabling organizations.
 	params := &instancesettings.UpdateOrganizationSettingsParams{
 		Enabled: clerk.Bool(false),
 	}
 	_, err := instancesettings.UpdateOrganizationSettings(ctx, params)
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to disable organization settings", err.Error())
+		resp.Diagnostics.AddError("Unable to disable application settings", err.Error())
 		return
 	}
-	tflog.Debug(ctx, "Disabled organization settings (resource deleted)")
+	tflog.Debug(ctx, "Disabled application settings (resource deleted)")
 }
 
-func buildOrgSettingsParams(model *OrganizationSettingsResourceModel) *instancesettings.UpdateOrganizationSettingsParams {
+func buildAppSettingsParams(model *ApplicationSettingsResourceModel) *instancesettings.UpdateOrganizationSettingsParams {
 	params := &instancesettings.UpdateOrganizationSettingsParams{
 		Enabled: clerk.Bool(model.Enabled.ValueBool()),
 	}
@@ -225,7 +225,7 @@ func buildOrgSettingsParams(model *OrganizationSettingsResourceModel) *instances
 	return params
 }
 
-func mapOrgSettingsResponseToModel(settings *clerk.OrganizationSettings, model *OrganizationSettingsResourceModel) {
+func mapAppSettingsResponseToModel(settings *clerk.OrganizationSettings, model *ApplicationSettingsResourceModel) {
 	model.Enabled = types.BoolValue(settings.Enabled)
 	model.MaxAllowedMemberships = types.Int64Value(settings.MaxAllowedMemberships)
 	model.MaxAllowedRoles = types.Int64Value(settings.MaxAllowedRoles)

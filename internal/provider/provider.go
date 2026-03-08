@@ -21,7 +21,15 @@ type ClerkProvider struct {
 }
 
 type ClerkProviderModel struct {
-	APIKey types.String `tfsdk:"api_key"`
+	APIKey         types.String `tfsdk:"api_key"`
+	PlatformAPIKey types.String `tfsdk:"platform_api_key"`
+}
+
+// ProviderData is passed to resources via req.ProviderData so each resource
+// can access the keys it needs.
+type ProviderData struct {
+	APIKey         string
+	PlatformAPIKey string
 }
 
 func New(version string) func() provider.Provider {
@@ -45,6 +53,11 @@ func (p *ClerkProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp
 				Optional:    true,
 				Sensitive:   true,
 				Description: "Clerk secret key. Can also be set via CLERK_API_KEY environment variable.",
+			},
+			"platform_api_key": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Clerk Platform API key (beta). Required for application-level resources. Can also be set via CLERK_PLATFORM_API_KEY environment variable.",
 			},
 		},
 	}
@@ -85,9 +98,19 @@ func (p *ClerkProvider) Configure(ctx context.Context, req provider.ConfigureReq
 
 	clerkgo.SetKey(apiKey)
 
-	// Pass a sentinel value so resources know Configure ran successfully.
-	resp.DataSourceData = apiKey
-	resp.ResourceData = apiKey
+	// Resolve optional Platform API key.
+	platformAPIKey := os.Getenv("CLERK_PLATFORM_API_KEY")
+	if !config.PlatformAPIKey.IsNull() && !config.PlatformAPIKey.IsUnknown() {
+		platformAPIKey = config.PlatformAPIKey.ValueString()
+	}
+
+	data := ProviderData{
+		APIKey:         apiKey,
+		PlatformAPIKey: platformAPIKey,
+	}
+
+	resp.DataSourceData = data
+	resp.ResourceData = data
 
 	tflog.Info(ctx, "Configured Clerk provider")
 }
@@ -96,7 +119,8 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 	return []func() resource.Resource{
 		NewJWTTemplateResource,
 		NewOrganizationResource,
-		NewOrganizationSettingsResource,
+		NewApplicationSettingsResource,
+		NewApplicationResource,
 	}
 }
 
