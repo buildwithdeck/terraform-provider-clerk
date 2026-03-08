@@ -1,4 +1,4 @@
 resource "clerk_application_settings" "this" {
-  enabled              = true
+  enable_organizations = true
   admin_delete_enabled = true
 }

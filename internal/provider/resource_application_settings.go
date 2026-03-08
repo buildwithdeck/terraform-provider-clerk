@@ -30,7 +30,7 @@ type ApplicationSettingsResource struct {
 
 type ApplicationSettingsResourceModel struct {
 	ID                    types.String `tfsdk:"id"`
-	Enabled               types.Bool   `tfsdk:"enabled"`
+	EnableOrganizations   types.Bool   `tfsdk:"enable_organizations"`
 	MaxAllowedMemberships types.Int64  `tfsdk:"max_allowed_memberships"`
 	MaxAllowedRoles       types.Int64  `tfsdk:"max_allowed_roles"`
 	MaxAllowedPermissions types.Int64  `tfsdk:"max_allowed_permissions"`
@@ -70,7 +70,7 @@ func (r *ApplicationSettingsResource) Schema(_ context.Context, _ resource.Schem
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"enabled": schema.BoolAttribute{
+			"enable_organizations": schema.BoolAttribute{
 				Required:    true,
 				Description: "Whether organizations are enabled for this instance.",
 			},
@@ -211,7 +211,7 @@ func (r *ApplicationSettingsResource) Delete(ctx context.Context, _ resource.Del
 
 func buildAppSettingsParams(model *ApplicationSettingsResourceModel) *instancesettings.UpdateOrganizationSettingsParams {
 	params := &instancesettings.UpdateOrganizationSettingsParams{
-		Enabled: clerk.Bool(model.Enabled.ValueBool()),
+		Enabled: clerk.Bool(model.EnableOrganizations.ValueBool()),
 	}
 	if !model.MaxAllowedMemberships.IsNull() && !model.MaxAllowedMemberships.IsUnknown() {
 		params.MaxAllowedMemberships = clerk.Int64(model.MaxAllowedMemberships.ValueInt64())
@@ -226,7 +226,7 @@ func buildAppSettingsParams(model *ApplicationSettingsResourceModel) *instancese
 }
 
 func mapAppSettingsResponseToModel(settings *clerk.OrganizationSettings, model *ApplicationSettingsResourceModel) {
-	model.Enabled = types.BoolValue(settings.Enabled)
+	model.EnableOrganizations = types.BoolValue(settings.Enabled)
 	model.MaxAllowedMemberships = types.Int64Value(settings.MaxAllowedMemberships)
 	model.MaxAllowedRoles = types.Int64Value(settings.MaxAllowedRoles)
 	model.MaxAllowedPermissions = types.Int64Value(settings.MaxAllowedPermissions)
