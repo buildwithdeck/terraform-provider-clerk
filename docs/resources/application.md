@@ -3,12 +3,12 @@
 page_title: "clerk_application Resource - clerk"
 subcategory: ""
 description: |-
-  Manages a Clerk application via the Platform API (beta).
+  Manages a Clerk application via the Platform API. The Platform API is a beta feature that must be enabled by Clerk — contact Clerk support or visit your dashboard to request access.
 ---
 
 # clerk_application (Resource)
 
-Manages a Clerk application via the Platform API (beta).
+Manages a Clerk application via the Platform API. The Platform API is a beta feature that must be enabled by Clerk — contact Clerk support or visit your dashboard to request access.
 
 ## Example Usage
 

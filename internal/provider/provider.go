@@ -57,7 +57,7 @@ func (p *ClerkProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp
 			"platform_api_key": schema.StringAttribute{
 				Optional:    true,
 				Sensitive:   true,
-				Description: "Clerk Platform API key (beta). Required for application-level resources. Can also be set via CLERK_PLATFORM_API_KEY environment variable.",
+				Description: "Clerk Platform API key. Required for the clerk_application resource. The Platform API is a beta feature that must be enabled by Clerk — contact Clerk support or visit your dashboard to request access. Can also be set via CLERK_PLATFORM_API_KEY environment variable.",
 			},
 		},
 	}

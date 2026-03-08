@@ -68,7 +68,7 @@ func (r *ApplicationResource) Configure(_ context.Context, req resource.Configur
 	if data.PlatformAPIKey == "" {
 		resp.Diagnostics.AddError(
 			"Missing Platform API Key",
-			"The clerk_application resource requires a platform_api_key. Set it in the provider configuration or via the CLERK_PLATFORM_API_KEY environment variable.",
+			"The clerk_application resource requires a platform_api_key. Set it in the provider configuration or via the CLERK_PLATFORM_API_KEY environment variable. The Platform API is a beta feature that must be enabled by Clerk — contact Clerk support or visit your dashboard to request access.",
 		)
 		return
 	}
@@ -81,7 +81,7 @@ func (r *ApplicationResource) Metadata(_ context.Context, req resource.MetadataR
 
 func (r *ApplicationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages a Clerk application via the Platform API (beta).",
+		Description: "Manages a Clerk application via the Platform API. The Platform API is a beta feature that must be enabled by Clerk — contact Clerk support or visit your dashboard to request access.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
