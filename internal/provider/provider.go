@@ -123,6 +123,7 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewApplicationResource,
 		NewDomainResource,
 		NewInstanceConfigResource,
+		NewRedirectURLResource,
 	}
 }
 
