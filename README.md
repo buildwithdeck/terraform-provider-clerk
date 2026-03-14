@@ -19,7 +19,11 @@ terraform {
 }
 
 provider "clerk" {
-  # Set the CLERK_API_KEY environment variable
+  # Instance API key (required) — for managing resources on a specific Clerk instance
+  # Set via CLERK_API_KEY environment variable or api_key attribute
+
+  # Platform API key (optional) — for managing applications, domains, and instance config
+  # Set via CLERK_PLATFORM_API_KEY environment variable or platform_api_key attribute
 }
 ```
 
@@ -27,17 +31,68 @@ See the [documentation](https://registry.terraform.io/providers/buildwithdeck/cl
 
 ## Supported Resources
 
+This provider uses two Clerk APIs. Each resource requires the corresponding API key.
+
+### Instance API (`CLERK_API_KEY`)
+
+These resources manage settings on a specific Clerk instance (identified by its secret key):
+
 - `clerk_jwt_template` — Manage JWT templates
+- `clerk_organization` — Manage organizations
+- `clerk_application_settings` — Manage instance-level application settings
+
+### Platform API (`CLERK_PLATFORM_API_KEY`) — Beta
+
+These resources use the [Platform API](https://clerk.com/docs) to manage applications and their sub-resources across your workspace. The Platform API is a **beta feature** — contact Clerk support or visit your dashboard to request access.
+
+- `clerk_application` — Create and manage Clerk applications (supports logo/favicon upload)
+- `clerk_domain` — Manage domains on a Clerk application
+- `clerk_instance_config` — Manage instance configuration (auth settings, OAuth connections, etc.)
 
 ## Authentication
 
-Set the `CLERK_API_KEY` environment variable to your Clerk secret key, or configure it directly in the provider block:
+### Instance API key (required)
+
+Set the `CLERK_API_KEY` environment variable to your Clerk **secret key** (starts with `sk_test_` or `sk_live_`):
+
+```bash
+export CLERK_API_KEY="sk_test_..."
+```
+
+Or configure it directly in the provider block:
 
 ```hcl
 provider "clerk" {
   api_key = "sk_test_..."
 }
 ```
+
+### Platform API key (optional, beta)
+
+If you need to manage `clerk_application`, `clerk_domain`, or `clerk_instance_config` resources, you also need a **Platform API key** (starts with `ak_`). This is a separate key from the instance secret key.
+
+```bash
+export CLERK_PLATFORM_API_KEY="ak_..."
+```
+
+Or configure it in the provider block:
+
+```hcl
+provider "clerk" {
+  api_key          = "sk_test_..."
+  platform_api_key = "ak_..."
+}
+```
+
+#### Required Platform API scopes
+
+Your Platform API key must have the following scopes enabled in your [Clerk dashboard](https://dashboard.clerk.com) for each resource:
+
+| Resource | Required Scopes |
+|----------|----------------|
+| `clerk_application` | `applications:read`, `applications:manage`, `applications:delete` |
+| `clerk_domain` | `application_domains:read`, `application_domains:manage` |
+| `clerk_instance_config` | `applications:manage` |
 
 ## Development
 
@@ -49,10 +104,11 @@ make build
 
 ### Run Acceptance Tests
 
-Acceptance tests create real resources against the Clerk API.
+Acceptance tests create real resources against the Clerk API. Both keys are required to run the full test suite.
 
 ```bash
 export CLERK_API_KEY="sk_test_..."
+export CLERK_PLATFORM_API_KEY="ak_..."
 make testacc
 ```
 

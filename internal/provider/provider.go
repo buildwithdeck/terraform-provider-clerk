@@ -47,17 +47,17 @@ func (p *ClerkProvider) Metadata(_ context.Context, _ provider.MetadataRequest, 
 
 func (p *ClerkProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manage Clerk resources.",
+		Description: "Manage Clerk resources. This provider uses two APIs: the Instance API (for jwt_template, organization, application_settings) requires an instance secret key (api_key), and the Platform API (for application, domain, instance_config) requires a Platform API beta key (platform_api_key).",
 		Attributes: map[string]schema.Attribute{
 			"api_key": schema.StringAttribute{
 				Optional:    true,
 				Sensitive:   true,
-				Description: "Clerk secret key. Can also be set via CLERK_API_KEY environment variable.",
+				Description: "Clerk instance secret key (starts with sk_test_ or sk_live_). Required for clerk_jwt_template, clerk_organization, and clerk_application_settings resources. Can also be set via the CLERK_API_KEY environment variable.",
 			},
 			"platform_api_key": schema.StringAttribute{
 				Optional:    true,
 				Sensitive:   true,
-				Description: "Clerk Platform API key. Required for the clerk_application resource. The Platform API is a beta feature that must be enabled by Clerk — contact Clerk support or visit your dashboard to request access. Can also be set via CLERK_PLATFORM_API_KEY environment variable.",
+				Description: "Clerk Platform API key (starts with ak_). Required for clerk_application, clerk_domain, and clerk_instance_config resources. The Platform API is a beta feature — contact Clerk support or visit your dashboard to request access. Can also be set via the CLERK_PLATFORM_API_KEY environment variable.",
 			},
 		},
 	}
