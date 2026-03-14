@@ -245,7 +245,7 @@ type PlatformTransferResponse struct {
 
 func (c *PlatformClient) CreateTransfer(ctx context.Context, appID string) (*PlatformTransferResponse, error) {
 	var result PlatformTransferResponse
-	err := c.doRequest(ctx, http.MethodPost, "/platform/applications/"+appID+"/transfers", nil, &result)
+	err := c.doRequest(ctx, http.MethodPost, "/platform/applications/"+appID+"/transfers", struct{}{}, &result)
 	if err != nil {
 		return nil, err
 	}
