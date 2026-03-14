@@ -153,3 +153,57 @@ func (c *PlatformClient) DeleteApplication(ctx context.Context, id string) (*Pla
 	}
 	return &result, nil
 }
+
+// --- Domain types ---
+
+type CreateDomainParams struct {
+	Name      string `json:"name"`
+	ProxyPath string `json:"proxy_path,omitempty"`
+}
+
+type PlatformDomainCNAMETarget struct {
+	Host     string `json:"host"`
+	Value    string `json:"value"`
+	Required bool   `json:"required"`
+}
+
+type PlatformDomainResponse struct {
+	ID                string                      `json:"id"`
+	Name              string                      `json:"name"`
+	IsSatellite       bool                        `json:"is_satellite"`
+	IsProviderDomain  bool                        `json:"is_provider_domain"`
+	FrontendAPIURL    string                      `json:"frontend_api_url"`
+	DevelopmentOrigin string                      `json:"development_origin"`
+	AccountsPortalURL string                      `json:"accounts_portal_url"`
+	ProxyURL          string                      `json:"proxy_url"`
+	CNAMETargets      []PlatformDomainCNAMETarget `json:"cname_targets"`
+}
+
+// --- Domain CRUD ---
+
+func (c *PlatformClient) CreateDomain(ctx context.Context, appID string, params *CreateDomainParams) (*PlatformDomainResponse, error) {
+	var result PlatformDomainResponse
+	err := c.doRequest(ctx, http.MethodPost, "/platform/applications/"+appID+"/domains", params, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (c *PlatformClient) GetDomain(ctx context.Context, appID, domainID string) (*PlatformDomainResponse, error) {
+	var result PlatformDomainResponse
+	err := c.doRequest(ctx, http.MethodGet, "/platform/applications/"+appID+"/domains/"+domainID, nil, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (c *PlatformClient) DeleteDomain(ctx context.Context, appID, domainID string) (*PlatformDeletedObjectResponse, error) {
+	var result PlatformDeletedObjectResponse
+	err := c.doRequest(ctx, http.MethodDelete, "/platform/applications/"+appID+"/domains/"+domainID, nil, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}

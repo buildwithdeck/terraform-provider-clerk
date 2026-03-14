@@ -121,6 +121,7 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewOrganizationResource,
 		NewApplicationSettingsResource,
 		NewApplicationResource,
+		NewDomainResource,
 	}
 }
 
