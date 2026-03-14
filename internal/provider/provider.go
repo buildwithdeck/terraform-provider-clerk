@@ -47,7 +47,7 @@ func (p *ClerkProvider) Metadata(_ context.Context, _ provider.MetadataRequest, 
 
 func (p *ClerkProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manage Clerk resources. This provider uses two APIs: the Instance API (for jwt_template, organization, application_settings) requires an instance secret key (api_key), and the Platform API (for application, domain, instance_config) requires a Platform API beta key (platform_api_key).",
+		Description: "Manage Clerk resources. This provider uses two APIs: the Instance API (for jwt_template, organization, application_settings, instance_domain) requires an instance secret key (api_key), and the Platform API (for application, domain, instance_config) requires a Platform API beta key (platform_api_key).",
 		Attributes: map[string]schema.Attribute{
 			"api_key": schema.StringAttribute{
 				Optional:    true,
@@ -123,6 +123,7 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewApplicationSettingsResource,
 		NewApplicationResource,
 		NewDomainResource,
+		NewInstanceDomainResource,
 		NewInstanceConfigResource,
 		NewRedirectURLResource,
 		NewBlocklistIdentifierResource,
