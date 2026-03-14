@@ -227,6 +227,49 @@ func (c *PlatformClient) DeleteFavicon(ctx context.Context, appID string) error 
 		"/platform/applications/"+appID+"/favicon", nil, nil)
 }
 
+// --- Transfer types ---
+
+type PlatformTransferResponse struct {
+	ID            string  `json:"id"`
+	Object        string  `json:"object"`
+	Code          string  `json:"code"`
+	ApplicationID string  `json:"application_id"`
+	Status        string  `json:"status"`
+	ExpiresAt     string  `json:"expires_at"`
+	CreatedAt     string  `json:"created_at"`
+	CanceledAt    *string `json:"canceled_at"`
+	CompletedAt   *string `json:"completed_at"`
+}
+
+// --- Transfer CRUD ---
+
+func (c *PlatformClient) CreateTransfer(ctx context.Context, appID string) (*PlatformTransferResponse, error) {
+	var result PlatformTransferResponse
+	err := c.doRequest(ctx, http.MethodPost, "/platform/applications/"+appID+"/transfers", nil, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (c *PlatformClient) GetTransfer(ctx context.Context, appID, transferID string) (*PlatformTransferResponse, error) {
+	var result PlatformTransferResponse
+	err := c.doRequest(ctx, http.MethodGet, "/platform/applications/"+appID+"/transfers/"+transferID, nil, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (c *PlatformClient) CancelTransfer(ctx context.Context, appID, transferID string) (*PlatformTransferResponse, error) {
+	var result PlatformTransferResponse
+	err := c.doRequest(ctx, http.MethodDelete, "/platform/applications/"+appID+"/transfers/"+transferID, nil, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 // --- Domain types ---
 
 type CreateDomainParams struct {
