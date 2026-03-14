@@ -11,6 +11,7 @@ import (
 
 	clerk "github.com/clerk/clerk-sdk-go/v2"
 	"github.com/clerk/clerk-sdk-go/v2/instancesettings"
+	"github.com/clerk/clerk-sdk-go/v2/user"
 )
 
 // testAccEphemeralAppID holds the application ID of the ephemeral app created
@@ -21,6 +22,10 @@ var testAccEphemeralAppID string
 // testAccEphemeralInstanceID holds the instance ID of the development instance
 // in the ephemeral app, used by instance config tests.
 var testAccEphemeralInstanceID string
+
+// testAccTestUserID holds the ID of a test user created in the ephemeral app,
+// available for tests that require user references (e.g., organization memberships).
+var testAccTestUserID string
 
 // TestMain manages ephemeral Clerk application lifecycle for acceptance tests.
 // If CLERK_PLATFORM_API_KEY is set (and TF_ACC=1), it creates a temporary app,
@@ -96,6 +101,19 @@ func TestMain(m *testing.M) {
 		log.Printf("TestMain: WARNING: failed to enable organizations: %v", err)
 	}
 
+	// Create a test user for acceptance tests.
+	log.Println("TestMain: creating test user")
+	testUser, err := user.Create(ctx, &user.CreateParams{
+		EmailAddresses: &[]string{"tf-acc-test@example.com"},
+		Password:       clerk.String("test-password-123!"),
+	})
+	if err != nil {
+		log.Printf("TestMain: WARNING: failed to create test user: %v", err)
+	} else {
+		testAccTestUserID = testUser.ID
+		log.Printf("TestMain: test user %s created", testAccTestUserID)
+	}
+
 	log.Println("TestMain: running tests")
 
 	// Inject the ephemeral secret key.
@@ -103,6 +121,14 @@ func TestMain(m *testing.M) {
 
 	// Run all tests.
 	code := m.Run()
+
+	// Cleanup test user.
+	if testAccTestUserID != "" {
+		log.Printf("TestMain: deleting test user %s", testAccTestUserID)
+		if _, err := user.Delete(ctx, testAccTestUserID); err != nil {
+			log.Printf("TestMain: WARNING: failed to delete test user: %v", err)
+		}
+	}
 
 	// Teardown: delete ephemeral app.
 	log.Printf("TestMain: deleting ephemeral app %s", app.ApplicationID)
