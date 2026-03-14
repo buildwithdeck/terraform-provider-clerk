@@ -280,3 +280,48 @@ func (c *PlatformClient) DeleteDomain(ctx context.Context, appID, domainID strin
 	}
 	return &result, nil
 }
+
+// --- Instance Config ---
+
+// GetInstanceConfig retrieves the instance configuration as a dynamic map.
+// Returns the config map (without config_version), the config_version string, and any error.
+func (c *PlatformClient) GetInstanceConfig(ctx context.Context, appID, instanceID string) (map[string]interface{}, string, error) {
+	var raw map[string]interface{}
+	path := fmt.Sprintf("/platform/applications/%s/instances/%s/config", appID, instanceID)
+	err := c.doRequest(ctx, http.MethodGet, path, nil, &raw)
+	if err != nil {
+		return nil, "", err
+	}
+
+	configVersion := ""
+	if v, ok := raw["config_version"]; ok {
+		if s, ok := v.(string); ok {
+			configVersion = s
+		}
+		delete(raw, "config_version")
+	}
+
+	return raw, configVersion, nil
+}
+
+// UpdateInstanceConfig patches the instance configuration with the given key-value pairs.
+// Uses destructive=true and optionally sets If-Match header for optimistic concurrency.
+// Returns the new config_version and any error.
+func (c *PlatformClient) UpdateInstanceConfig(ctx context.Context, appID, instanceID string, config map[string]interface{}) (string, error) {
+	path := fmt.Sprintf("/platform/applications/%s/instances/%s/config?destructive=true", appID, instanceID)
+
+	var raw map[string]interface{}
+	err := c.doRequest(ctx, http.MethodPatch, path, config, &raw)
+	if err != nil {
+		return "", err
+	}
+
+	newVersion := ""
+	if v, ok := raw["config_version"]; ok {
+		if s, ok := v.(string); ok {
+			newVersion = s
+		}
+	}
+
+	return newVersion, nil
+}

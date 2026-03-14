@@ -122,6 +122,7 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewApplicationSettingsResource,
 		NewApplicationResource,
 		NewDomainResource,
+		NewInstanceConfigResource,
 	}
 }
 
