@@ -50,7 +50,8 @@ func TestAccInstanceDomainResource(t *testing.T) {
 func testAccInstanceDomainConfig(name string) string {
 	return fmt.Sprintf(`
 resource "clerk_instance_domain" "test" {
-  name = %[1]q
+  name         = %[1]q
+  is_satellite = true
 }
 `, name)
 }
