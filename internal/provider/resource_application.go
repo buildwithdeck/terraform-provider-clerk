@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -36,6 +37,8 @@ type ApplicationResourceModel struct {
 	ProxyPath        types.String `tfsdk:"proxy_path"`
 	EnvironmentTypes types.List   `tfsdk:"environment_types"`
 	Template         types.String `tfsdk:"template"`
+	Logo             types.String `tfsdk:"logo"`
+	Favicon          types.String `tfsdk:"favicon"`
 	Instances        types.List   `tfsdk:"instances"`
 }
 
@@ -123,6 +126,16 @@ func (r *ApplicationResource) Schema(_ context.Context, _ resource.SchemaRequest
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"logo": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Base64-encoded logo image content. Use filebase64() to read from a file. Write-only: not returned by the API on reads.",
+			},
+			"favicon": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Base64-encoded favicon image content. Use filebase64() to read from a file. Write-only: not returned by the API on reads.",
+			},
 			"instances": schema.ListNestedAttribute{
 				Computed:    true,
 				Description: "List of instances (environments) created for this application.",
@@ -150,6 +163,17 @@ func (r *ApplicationResource) Schema(_ context.Context, _ resource.SchemaRequest
 			},
 		},
 	}
+}
+
+func (r *ApplicationResource) uploadImageIfSet(ctx context.Context, appID string, value types.String, uploadFn func(context.Context, string, []byte) error, label string) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	decoded, err := base64.StdEncoding.DecodeString(value.ValueString())
+	if err != nil {
+		return fmt.Errorf("decoding %s base64 content: %w", label, err)
+	}
+	return uploadFn(ctx, appID, decoded)
 }
 
 func (r *ApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -191,6 +215,18 @@ func (r *ApplicationResource) Create(ctx context.Context, req resource.CreateReq
 
 	mapApplicationResponseToModel(app, &plan)
 
+	// Upload logo if provided.
+	if err := r.uploadImageIfSet(ctx, app.ApplicationID, plan.Logo, r.client.UploadLogo, "logo"); err != nil {
+		resp.Diagnostics.AddError("Unable to upload application logo", err.Error())
+		return
+	}
+
+	// Upload favicon if provided.
+	if err := r.uploadImageIfSet(ctx, app.ApplicationID, plan.Favicon, r.client.UploadFavicon, "favicon"); err != nil {
+		resp.Diagnostics.AddError("Unable to upload application favicon", err.Error())
+		return
+	}
+
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 	tflog.Debug(ctx, "Created application", map[string]any{"id": app.ApplicationID})
@@ -219,6 +255,8 @@ func (r *ApplicationResource) Read(ctx context.Context, req resource.ReadRequest
 	proxyPath := state.ProxyPath
 	envTypes := state.EnvironmentTypes
 	template := state.Template
+	logo := state.Logo
+	favicon := state.Favicon
 
 	mapApplicationResponseToModel(app, &state)
 
@@ -227,6 +265,8 @@ func (r *ApplicationResource) Read(ctx context.Context, req resource.ReadRequest
 	state.ProxyPath = proxyPath
 	state.EnvironmentTypes = envTypes
 	state.Template = template
+	state.Logo = logo
+	state.Favicon = favicon
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -258,6 +298,36 @@ func (r *ApplicationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	mapApplicationResponseToModel(app, &plan)
+
+	// Handle logo changes.
+	if !plan.Logo.Equal(state.Logo) {
+		if plan.Logo.IsNull() {
+			if err := r.client.DeleteLogo(ctx, state.ID.ValueString()); err != nil {
+				resp.Diagnostics.AddError("Unable to delete application logo", err.Error())
+				return
+			}
+		} else {
+			if err := r.uploadImageIfSet(ctx, state.ID.ValueString(), plan.Logo, r.client.UploadLogo, "logo"); err != nil {
+				resp.Diagnostics.AddError("Unable to upload application logo", err.Error())
+				return
+			}
+		}
+	}
+
+	// Handle favicon changes.
+	if !plan.Favicon.Equal(state.Favicon) {
+		if plan.Favicon.IsNull() {
+			if err := r.client.DeleteFavicon(ctx, state.ID.ValueString()); err != nil {
+				resp.Diagnostics.AddError("Unable to delete application favicon", err.Error())
+				return
+			}
+		} else {
+			if err := r.uploadImageIfSet(ctx, state.ID.ValueString(), plan.Favicon, r.client.UploadFavicon, "favicon"); err != nil {
+				resp.Diagnostics.AddError("Unable to upload application favicon", err.Error())
+				return
+			}
+		}
+	}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)

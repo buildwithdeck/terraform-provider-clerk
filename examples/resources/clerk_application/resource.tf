@@ -9,3 +9,10 @@ resource "clerk_application" "full_example" {
   environment_types = ["development", "production"]
   template          = "next"
 }
+
+# With logo and favicon
+resource "clerk_application" "branded_example" {
+  name    = "my-branded-application"
+  logo    = filebase64("logo.png")
+  favicon = filebase64("favicon.ico")
+}
