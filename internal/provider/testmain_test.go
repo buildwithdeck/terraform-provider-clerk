@@ -13,6 +13,11 @@ import (
 	"github.com/clerk/clerk-sdk-go/v2/instancesettings"
 )
 
+// testAccEphemeralAppID holds the application ID of the ephemeral app created
+// for acceptance tests. Domain tests reference this to create domains on the
+// test application.
+var testAccEphemeralAppID string
+
 // TestMain manages ephemeral Clerk application lifecycle for acceptance tests.
 // If CLERK_PLATFORM_API_KEY is set (and TF_ACC=1), it creates a temporary app,
 // extracts the dev instance secret key, and sets CLERK_API_KEY automatically.
@@ -43,7 +48,8 @@ func TestMain(m *testing.M) {
 	log.Printf("TestMain: creating ephemeral app %q", appName)
 
 	app, err := client.CreateApplication(ctx, &CreateApplicationParams{
-		Name: appName,
+		Name:             appName,
+		EnvironmentTypes: []string{"development", "production"},
 	})
 	if err != nil {
 		log.Fatalf("TestMain: failed to create ephemeral app: %v", err)
@@ -62,6 +68,8 @@ func TestMain(m *testing.M) {
 		_, _ = client.DeleteApplication(ctx, app.ApplicationID)
 		log.Fatal("TestMain: no development instance secret_key found in ephemeral app")
 	}
+
+	testAccEphemeralAppID = app.ApplicationID
 
 	log.Printf("TestMain: ephemeral app %s created, waiting for instance readiness...", app.ApplicationID)
 
