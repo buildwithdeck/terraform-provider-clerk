@@ -295,17 +295,3 @@ func mapOrgResponseToModel(org *clerkgo.Organization, model *OrganizationResourc
 		model.PrivateMetadata = types.StringValue(normalizeJSON(string(org.PrivateMetadata)))
 	}
 }
-
-// normalizeJSON re-marshals a JSON string to produce canonical key ordering,
-// preventing spurious Terraform diffs caused by key reordering from the API.
-func normalizeJSON(s string) string {
-	var v interface{}
-	if err := json.Unmarshal([]byte(s), &v); err != nil {
-		return s
-	}
-	b, err := json.Marshal(v)
-	if err != nil {
-		return s
-	}
-	return string(b)
-}
