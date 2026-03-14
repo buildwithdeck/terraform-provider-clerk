@@ -84,7 +84,15 @@ provider "clerk" {
 }
 ```
 
-> **Note:** The Platform API key must have the appropriate scopes enabled for each resource (e.g., `applications:manage`, `application_domains:manage`, `applications:manage` for instance config). Enable scopes in your Clerk dashboard under the Platform API key settings.
+#### Required Platform API scopes
+
+Your Platform API key must have the following scopes enabled in your [Clerk dashboard](https://dashboard.clerk.com) for each resource:
+
+| Resource | Required Scopes |
+|----------|----------------|
+| `clerk_application` | `applications:read`, `applications:manage`, `applications:delete` |
+| `clerk_domain` | `application_domains:read`, `application_domains:manage` |
+| `clerk_instance_config` | `applications:manage` |
 
 ## Development
 
