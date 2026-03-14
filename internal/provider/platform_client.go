@@ -227,6 +227,76 @@ func (c *PlatformClient) DeleteFavicon(ctx context.Context, appID string) error 
 		"/platform/applications/"+appID+"/favicon", nil, nil)
 }
 
+// --- User types ---
+
+type ListUsersParams struct {
+	Query   string
+	OrderBy string
+	Limit   int64
+	Offset  int64
+}
+
+type PlatformUserEmailAddress struct {
+	ID           string `json:"id"`
+	EmailAddress string `json:"email_address"`
+}
+
+type PlatformUserResponse struct {
+	ID             string                     `json:"id"`
+	Username       *string                    `json:"username"`
+	FirstName      *string                    `json:"first_name"`
+	LastName       *string                    `json:"last_name"`
+	ImageURL       string                     `json:"image_url"`
+	EmailAddresses []PlatformUserEmailAddress `json:"email_addresses"`
+	Banned         bool                       `json:"banned"`
+	CreatedAt      int64                      `json:"created_at"`
+	UpdatedAt      int64                      `json:"updated_at"`
+}
+
+type ListUsersResponse struct {
+	Data       []PlatformUserResponse `json:"data"`
+	TotalCount int64                  `json:"total_count"`
+}
+
+// --- User operations ---
+
+func (c *PlatformClient) ListInstanceUsers(ctx context.Context, appID, instanceID string, params *ListUsersParams) (*ListUsersResponse, error) {
+	path := fmt.Sprintf("/platform/applications/%s/instances/%s/users", appID, instanceID)
+
+	query := make([]string, 0)
+	if params != nil {
+		if params.Query != "" {
+			query = append(query, "query="+params.Query)
+		}
+		if params.OrderBy != "" {
+			query = append(query, "order_by="+params.OrderBy)
+		}
+		if params.Limit > 0 {
+			query = append(query, fmt.Sprintf("limit=%d", params.Limit))
+		}
+		if params.Offset > 0 {
+			query = append(query, fmt.Sprintf("offset=%d", params.Offset))
+		}
+	}
+
+	if len(query) > 0 {
+		path += "?"
+		for i, q := range query {
+			if i > 0 {
+				path += "&"
+			}
+			path += q
+		}
+	}
+
+	var result ListUsersResponse
+	err := c.doRequest(ctx, http.MethodGet, path, nil, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 // --- Domain types ---
 
 type CreateDomainParams struct {

@@ -17,6 +17,7 @@ import (
 // for acceptance tests. Domain tests reference this to create domains on the
 // test application.
 var testAccEphemeralAppID string
+var testAccEphemeralInstanceID string
 
 // TestMain manages ephemeral Clerk application lifecycle for acceptance tests.
 // If CLERK_PLATFORM_API_KEY is set (and TF_ACC=1), it creates a temporary app,
@@ -60,6 +61,7 @@ func TestMain(m *testing.M) {
 	for _, inst := range app.Instances {
 		if inst.EnvironmentType == "development" && inst.SecretKey != "" {
 			secretKey = inst.SecretKey
+			testAccEphemeralInstanceID = inst.InstanceID
 			break
 		}
 	}

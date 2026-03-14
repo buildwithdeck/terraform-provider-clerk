@@ -126,5 +126,7 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 }
 
 func (p *ClerkProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		NewUsersDataSource,
+	}
 }
