@@ -280,3 +280,104 @@ func (c *PlatformClient) DeleteDomain(ctx context.Context, appID, domainID strin
 	}
 	return &result, nil
 }
+
+// --- Instance Config ---
+
+// doRequestWithHeaders is like doRequest but allows setting custom HTTP headers.
+func (c *PlatformClient) doRequestWithHeaders(ctx context.Context, method, path string, headers map[string]string, body interface{}, result interface{}) (*http.Response, error) {
+	var reqBody io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling request body: %w", err)
+		}
+		reqBody = bytes.NewReader(b)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("executing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return resp, &PlatformAPIError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBody),
+		}
+	}
+
+	if result != nil && len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, result); err != nil {
+			return resp, fmt.Errorf("unmarshalling response: %w", err)
+		}
+	}
+
+	return resp, nil
+}
+
+// GetInstanceConfig retrieves the instance configuration as a dynamic map.
+// Returns the config map (without config_version), the config_version string, and any error.
+func (c *PlatformClient) GetInstanceConfig(ctx context.Context, appID, instanceID string) (map[string]interface{}, string, error) {
+	var raw map[string]interface{}
+	path := fmt.Sprintf("/platform/applications/%s/instances/%s/config", appID, instanceID)
+	err := c.doRequest(ctx, http.MethodGet, path, nil, &raw)
+	if err != nil {
+		return nil, "", err
+	}
+
+	configVersion := ""
+	if v, ok := raw["config_version"]; ok {
+		if s, ok := v.(string); ok {
+			configVersion = s
+		}
+		delete(raw, "config_version")
+	}
+
+	return raw, configVersion, nil
+}
+
+// UpdateInstanceConfig patches the instance configuration with the given key-value pairs.
+// Uses destructive=true and optionally sets If-Match header for optimistic concurrency.
+// Returns the new config_version and any error.
+func (c *PlatformClient) UpdateInstanceConfig(ctx context.Context, appID, instanceID string, config map[string]interface{}, configVersion string) (string, error) {
+	path := fmt.Sprintf("/platform/applications/%s/instances/%s/config?destructive=true", appID, instanceID)
+
+	headers := make(map[string]string)
+	if configVersion != "" {
+		headers["If-Match"] = configVersion
+	}
+
+	var raw map[string]interface{}
+	_, err := c.doRequestWithHeaders(ctx, http.MethodPatch, path, headers, config, &raw)
+	if err != nil {
+		return "", err
+	}
+
+	newVersion := ""
+	if v, ok := raw["config_version"]; ok {
+		if s, ok := v.(string); ok {
+			newVersion = s
+		}
+	}
+
+	return newVersion, nil
+}

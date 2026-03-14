@@ -18,6 +18,10 @@ import (
 // test application.
 var testAccEphemeralAppID string
 
+// testAccEphemeralInstanceID holds the instance ID of the development instance
+// in the ephemeral app, used by instance config tests.
+var testAccEphemeralInstanceID string
+
 // TestMain manages ephemeral Clerk application lifecycle for acceptance tests.
 // If CLERK_PLATFORM_API_KEY is set (and TF_ACC=1), it creates a temporary app,
 // extracts the dev instance secret key, and sets CLERK_API_KEY automatically.
@@ -55,11 +59,12 @@ func TestMain(m *testing.M) {
 		log.Fatalf("TestMain: failed to create ephemeral app: %v", err)
 	}
 
-	// Find dev instance secret key.
+	// Find dev instance secret key and instance ID.
 	var secretKey string
 	for _, inst := range app.Instances {
 		if inst.EnvironmentType == "development" && inst.SecretKey != "" {
 			secretKey = inst.SecretKey
+			testAccEphemeralInstanceID = inst.InstanceID
 			break
 		}
 	}
