@@ -116,12 +116,14 @@ func (r *InstanceDomainResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	params := &domain.CreateParams{
-		Name: clerkgo.String(plan.Name.ValueString()),
+	isSatellite := false
+	if !plan.IsSatellite.IsNull() && !plan.IsSatellite.IsUnknown() {
+		isSatellite = plan.IsSatellite.ValueBool()
 	}
 
-	if !plan.IsSatellite.IsNull() && !plan.IsSatellite.IsUnknown() {
-		params.IsSatellite = clerkgo.Bool(plan.IsSatellite.ValueBool())
+	params := &domain.CreateParams{
+		Name:        clerkgo.String(plan.Name.ValueString()),
+		IsSatellite: clerkgo.Bool(isSatellite),
 	}
 	if !plan.ProxyURL.IsNull() && !plan.ProxyURL.IsUnknown() {
 		params.ProxyURL = clerkgo.String(plan.ProxyURL.ValueString())
