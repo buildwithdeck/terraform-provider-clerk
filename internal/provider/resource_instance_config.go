@@ -117,7 +117,7 @@ func (r *InstanceConfigResource) Create(ctx context.Context, req resource.Create
 	appID := plan.ApplicationID.ValueString()
 	instID := plan.InstanceID.ValueString()
 
-	newVersion, err := r.client.UpdateInstanceConfig(ctx, appID, instID, configMap, "")
+	newVersion, err := r.client.UpdateInstanceConfig(ctx, appID, instID, configMap)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create instance config", err.Error())
 		return
@@ -142,7 +142,7 @@ func (r *InstanceConfigResource) Read(ctx context.Context, req resource.ReadRequ
 	appID := state.ApplicationID.ValueString()
 	instID := state.InstanceID.ValueString()
 
-	configMap, configVersion, err := r.client.GetInstanceConfig(ctx, appID, instID)
+	fullConfig, configVersion, err := r.client.GetInstanceConfig(ctx, appID, instID)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read instance config",
@@ -151,7 +151,20 @@ func (r *InstanceConfigResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	configJSON, err := json.Marshal(configMap)
+	// Only keep the keys that the user originally specified in their config
+	// to avoid storing the entire API response and causing perpetual diffs.
+	var managedKeys map[string]interface{}
+	if err := json.Unmarshal([]byte(state.Config.ValueString()), &managedKeys); err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to parse state config",
+			fmt.Sprintf("Could not parse existing config from state: %s", err.Error()),
+		)
+		return
+	}
+
+	filtered := filterConfigKeys(managedKeys, fullConfig)
+
+	configJSON, err := json.Marshal(filtered)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to serialize instance config",
@@ -194,7 +207,7 @@ func (r *InstanceConfigResource) Update(ctx context.Context, req resource.Update
 	appID := plan.ApplicationID.ValueString()
 	instID := plan.InstanceID.ValueString()
 
-	newVersion, err := r.client.UpdateInstanceConfig(ctx, appID, instID, configMap, state.ConfigVersion.ValueString())
+	newVersion, err := r.client.UpdateInstanceConfig(ctx, appID, instID, configMap)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update instance config", err.Error())
 		return
@@ -219,4 +232,25 @@ func (r *InstanceConfigResource) Delete(ctx context.Context, req resource.Delete
 	tflog.Debug(ctx, "Removing instance config from state (no-op, singleton resource)", map[string]any{
 		"id": state.ID.ValueString(),
 	})
+}
+
+// filterConfigKeys recursively filters apiConfig to only include the keys
+// present in managed. This prevents the API's full config from causing
+// perpetual diffs when the user only manages a subset of keys.
+func filterConfigKeys(managed, apiConfig map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for key, managedVal := range managed {
+		apiVal, ok := apiConfig[key]
+		if !ok {
+			continue
+		}
+		managedMap, managedIsMap := managedVal.(map[string]interface{})
+		apiMap, apiIsMap := apiVal.(map[string]interface{})
+		if managedIsMap && apiIsMap {
+			result[key] = filterConfigKeys(managedMap, apiMap)
+		} else {
+			result[key] = apiVal
+		}
+	}
+	return result
 }

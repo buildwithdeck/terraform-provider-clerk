@@ -25,7 +25,7 @@ func TestAccInstanceConfigResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create with a simple config
 			{
-				Config: testAccInstanceConfigConfig(`{"url_based_session_syncing":"1"}`),
+				Config: testAccInstanceConfigConfig(`{"auth_password":{"min_length":10}}`),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"clerk_instance_config.test",
@@ -46,7 +46,7 @@ func TestAccInstanceConfigResource(t *testing.T) {
 			},
 			// Update with modified config
 			{
-				Config: testAccInstanceConfigConfig(`{"url_based_session_syncing":"0"}`),
+				Config: testAccInstanceConfigConfig(`{"auth_password":{"min_length":12}}`),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"clerk_instance_config.test",
