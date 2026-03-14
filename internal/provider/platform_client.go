@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 )
 
@@ -116,6 +117,56 @@ func (c *PlatformClient) doRequest(ctx context.Context, method, path string, bod
 	return nil
 }
 
+func (c *PlatformClient) doMultipartUpload(ctx context.Context, method, path, fieldName string, fileContent []byte, result interface{}) error {
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	part, err := writer.CreateFormFile(fieldName, "upload")
+	if err != nil {
+		return fmt.Errorf("creating form file: %w", err)
+	}
+	if _, err := part.Write(fileContent); err != nil {
+		return fmt.Errorf("writing file content: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("closing multipart writer: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, &buf)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("executing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return &PlatformAPIError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBody),
+		}
+	}
+
+	if result != nil && len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, result); err != nil {
+			return fmt.Errorf("unmarshalling response: %w", err)
+		}
+	}
+
+	return nil
+}
+
 // --- Application CRUD ---
 
 func (c *PlatformClient) CreateApplication(ctx context.Context, params *CreateApplicationParams) (*PlatformApplicationResponse, error) {
@@ -152,6 +203,28 @@ func (c *PlatformClient) DeleteApplication(ctx context.Context, id string) (*Pla
 		return nil, err
 	}
 	return &result, nil
+}
+
+// --- Application Logo/Favicon ---
+
+func (c *PlatformClient) UploadLogo(ctx context.Context, appID string, fileContent []byte) error {
+	return c.doMultipartUpload(ctx, http.MethodPost,
+		"/platform/applications/"+appID+"/logo", "file", fileContent, nil)
+}
+
+func (c *PlatformClient) DeleteLogo(ctx context.Context, appID string) error {
+	return c.doRequest(ctx, http.MethodDelete,
+		"/platform/applications/"+appID+"/logo", nil, nil)
+}
+
+func (c *PlatformClient) UploadFavicon(ctx context.Context, appID string, fileContent []byte) error {
+	return c.doMultipartUpload(ctx, http.MethodPost,
+		"/platform/applications/"+appID+"/favicon", "file", fileContent, nil)
+}
+
+func (c *PlatformClient) DeleteFavicon(ctx context.Context, appID string) error {
+	return c.doRequest(ctx, http.MethodDelete,
+		"/platform/applications/"+appID+"/favicon", nil, nil)
 }
 
 // --- Domain types ---
