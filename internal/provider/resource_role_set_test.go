@@ -1,0 +1,98 @@
+package provider
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
+)
+
+func TestAccRoleSetResource(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and verify
+			{
+				Config: testAccRoleSetConfig("Test Role Set", "test_role_set", "A test role set"),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"clerk_role_set.test",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact("Test Role Set"),
+					),
+					statecheck.ExpectKnownValue(
+						"clerk_role_set.test",
+						tfjsonpath.New("key"),
+						knownvalue.StringExact("test_role_set"),
+					),
+				},
+			},
+			// Import
+			{
+				ResourceName:      "clerk_role_set.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Update
+			{
+				Config: testAccRoleSetConfig("Updated Role Set", "test_role_set", "An updated role set"),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"clerk_role_set.test",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact("Updated Role Set"),
+					),
+				},
+			},
+		},
+	})
+}
+
+func TestAccRoleSetWithRolesResource(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create role set with a role
+			{
+				Config: testAccRoleSetWithRolesConfig(),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"clerk_role_set.test_with_roles",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact("Role Set With Roles"),
+					),
+				},
+			},
+		},
+	})
+}
+
+func testAccRoleSetConfig(name, key, description string) string {
+	return fmt.Sprintf(`
+resource "clerk_role_set" "test" {
+  name        = %[1]q
+  key         = %[2]q
+  description = %[3]q
+}
+`, name, key, description)
+}
+
+func testAccRoleSetWithRolesConfig() string {
+	return `
+resource "clerk_organization_role" "test_for_role_set" {
+  name = "Role for role set test"
+  key  = "org:test_for_role_set"
+}
+
+resource "clerk_role_set" "test_with_roles" {
+  name  = "Role Set With Roles"
+  key   = "test_role_set_with_roles"
+  roles = [clerk_organization_role.test_for_role_set.key]
+}
+`
+}
