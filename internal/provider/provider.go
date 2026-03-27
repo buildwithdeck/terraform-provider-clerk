@@ -123,6 +123,8 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewOrganizationPermissionResource,
 		NewOrganizationRoleResource,
 		NewRoleSetResource,
+		NewOrganizationMembershipResource,
+		NewOrganizationDomainResource,
 		NewApplicationSettingsResource,
 		NewApplicationResource,
 		NewDomainResource,
