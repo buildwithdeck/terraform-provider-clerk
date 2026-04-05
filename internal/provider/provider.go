@@ -132,6 +132,7 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewInstanceConfigResource,
 		NewRedirectURLResource,
 		NewBlocklistIdentifierResource,
+		NewSAMLConnectionResource,
 		NewOAuthApplicationResource,
 	}
 }
