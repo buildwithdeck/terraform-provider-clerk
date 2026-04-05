@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -146,11 +145,7 @@ func (r *SAMLConnectionResource) Schema(_ context.Context, _ resource.SchemaRequ
 			},
 			"attribute_mapping": schema.SingleNestedAttribute{
 				Optional:    true,
-				Computed:    true,
 				Description: "Mapping of SAML attributes to Clerk user fields.",
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
 				Attributes: map[string]schema.Attribute{
 					"user_id": schema.StringAttribute{
 						Required:    true,
@@ -256,9 +251,6 @@ func (r *SAMLConnectionResource) Schema(_ context.Context, _ resource.SchemaRequ
 			"updated_at": schema.StringAttribute{
 				Computed:    true,
 				Description: "Timestamp when the SAML connection was last updated.",
-				PlanModifiers: []planmodifier.String{
-					useStateUnlessOtherChanges{},
-				},
 			},
 		},
 	}
@@ -519,41 +511,14 @@ func mapSAMLConnectionResponseToModel(conn *clerkgo.SAMLConnection, model *SAMLC
 		model.IdpMetadata = types.StringValue(*conn.IdpMetadata)
 	}
 
-	// Always populate attribute_mapping from API response
-	model.AttributeMapping = types.ObjectValueMust(samlAttributeMappingAttrTypes, map[string]attr.Value{
-		"user_id":       types.StringValue(conn.AttributeMapping.UserID),
-		"email_address": types.StringValue(conn.AttributeMapping.EmailAddress),
-		"first_name":    types.StringValue(conn.AttributeMapping.FirstName),
-		"last_name":     types.StringValue(conn.AttributeMapping.LastName),
-	})
-}
-
-// useStateUnlessOtherChanges is a plan modifier for computed timestamps.
-// On create (no state), it returns unknown. On update, if the plan has changes
-// it returns unknown (so Terraform expects a new value). If nothing else
-// changed, it preserves the state value (so the plan is empty).
-type useStateUnlessOtherChanges struct{}
-
-func (m useStateUnlessOtherChanges) Description(_ context.Context) string {
-	return "Use state value unless the resource has other planned changes."
-}
-
-func (m useStateUnlessOtherChanges) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func (m useStateUnlessOtherChanges) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	// On create, state is nil — leave as unknown.
-	if req.StateValue.IsNull() {
-		return
+	// Only populate attribute_mapping if the model already has a value (user configured it).
+	// The API always returns defaults, but storing them when unconfigured causes plan diffs.
+	if !model.AttributeMapping.IsNull() && !model.AttributeMapping.IsUnknown() {
+		model.AttributeMapping = types.ObjectValueMust(samlAttributeMappingAttrTypes, map[string]attr.Value{
+			"user_id":       types.StringValue(conn.AttributeMapping.UserID),
+			"email_address": types.StringValue(conn.AttributeMapping.EmailAddress),
+			"first_name":    types.StringValue(conn.AttributeMapping.FirstName),
+			"last_name":     types.StringValue(conn.AttributeMapping.LastName),
+		})
 	}
-
-	// If the overall plan signals the resource will change, mark unknown
-	// so the provider can return a new timestamp without inconsistency.
-	if req.PlanValue.IsUnknown() {
-		return
-	}
-
-	// No other changes: preserve state value so plan is empty.
-	resp.PlanValue = req.StateValue
 }
