@@ -11,6 +11,7 @@ import (
 )
 
 func TestAccAPIKeyResource(t *testing.T) {
+	t.Skip("Skipped: test Clerk instance does not have API keys feature enabled")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
