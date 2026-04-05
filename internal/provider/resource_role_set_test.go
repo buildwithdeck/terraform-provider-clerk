@@ -91,6 +91,7 @@ resource "clerk_role_set" "test" {
   description      = %[3]q
   default_role_key = clerk_organization_role.default_for_set.key
   creator_role_key = clerk_organization_role.creator_for_set.key
+  roles            = [clerk_organization_role.default_for_set.key, clerk_organization_role.creator_for_set.key]
 }
 `, name, key, description)
 }
@@ -117,7 +118,7 @@ resource "clerk_role_set" "test_with_roles" {
   key              = "role_set:test_role_set_with_roles"
   default_role_key = clerk_organization_role.default_for_roles_set.key
   creator_role_key = clerk_organization_role.creator_for_roles_set.key
-  roles            = [clerk_organization_role.test_for_role_set.key]
+  roles            = [clerk_organization_role.default_for_roles_set.key, clerk_organization_role.creator_for_roles_set.key, clerk_organization_role.test_for_role_set.key]
 }
 `
 }

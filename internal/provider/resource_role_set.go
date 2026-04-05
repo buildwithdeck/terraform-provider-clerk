@@ -116,9 +116,9 @@ func (r *RoleSetResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Description: "Key of the role assigned to the creator of an organization.",
 			},
 			"roles": schema.ListAttribute{
-				Optional:    true,
+				Required:    true,
 				ElementType: types.StringType,
-				Description: "List of role keys to include in this role set.",
+				Description: "List of role keys to include in this role set. Must include default_role_key and creator_role_key.",
 			},
 			"created_at": schema.StringAttribute{
 				Computed:    true,
@@ -158,15 +158,13 @@ func (r *RoleSetResource) Create(ctx context.Context, req resource.CreateRequest
 		params.Type = clerkgo.String(plan.Type.ValueString())
 	}
 
-	if !plan.Roles.IsNull() && !plan.Roles.IsUnknown() {
-		var roleKeys []string
-		diags = plan.Roles.ElementsAs(ctx, &roleKeys, false)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		params.Roles = &roleKeys
+	var roleKeys []string
+	diags = plan.Roles.ElementsAs(ctx, &roleKeys, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
+	params.Roles = &roleKeys
 
 	apiReq := clerkgo.NewAPIRequest(http.MethodPost, "/role_sets")
 	apiReq.SetParams(params)
