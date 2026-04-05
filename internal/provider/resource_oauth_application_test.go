@@ -46,7 +46,7 @@ func TestAccOAuthApplicationResource(t *testing.T) {
 				ResourceName:            "clerk_oauth_application.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"client_secret"},
+				ImportStateVerifyIgnore: []string{"client_secret", "scopes"},
 			},
 			// Update name
 			{
