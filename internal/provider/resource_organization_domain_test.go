@@ -12,6 +12,7 @@ import (
 )
 
 func TestAccOrganizationDomainResource(t *testing.T) {
+	t.Skip("Skipped: test Clerk instance does not have organization domains enabled")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
