@@ -135,6 +135,7 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewSAMLConnectionResource,
 		NewOAuthApplicationResource,
 		NewAPIKeyResource,
+		NewMachineResource,
 		NewSvixWebhookResource,
 	}
 }
