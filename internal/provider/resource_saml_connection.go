@@ -256,9 +256,6 @@ func (r *SAMLConnectionResource) Schema(_ context.Context, _ resource.SchemaRequ
 			"updated_at": schema.StringAttribute{
 				Computed:    true,
 				Description: "Timestamp when the SAML connection was last updated.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 		},
 	}
