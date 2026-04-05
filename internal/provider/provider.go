@@ -133,6 +133,7 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewRedirectURLResource,
 		NewBlocklistIdentifierResource,
 		NewSAMLConnectionResource,
+		NewOAuthApplicationResource,
 	}
 }
 
