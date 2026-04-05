@@ -352,7 +352,36 @@ func mapRoleSetResponseToModel(ctx context.Context, rs *clerkgo.RoleSet, model *
 		model.Description = types.StringValue(*rs.Description)
 	}
 
-	if len(rs.Roles) > 0 {
+	// Build the role keys from the API response.
+	apiRoleKeys := make(map[string]bool, len(rs.Roles))
+	for _, role := range rs.Roles {
+		apiRoleKeys[role.Key] = true
+	}
+
+	if !model.Roles.IsNull() && !model.Roles.IsUnknown() {
+		// Preserve the plan/state ordering: keep planned keys that still exist,
+		// then append any new keys returned by the API.
+		var planned []string
+		d := model.Roles.ElementsAs(ctx, &planned, false)
+		diags.Append(d...)
+
+		ordered := make([]string, 0, len(apiRoleKeys))
+		seen := make(map[string]bool, len(apiRoleKeys))
+		for _, k := range planned {
+			if apiRoleKeys[k] {
+				ordered = append(ordered, k)
+				seen[k] = true
+			}
+		}
+		for _, role := range rs.Roles {
+			if !seen[role.Key] {
+				ordered = append(ordered, role.Key)
+			}
+		}
+		roleList, d2 := types.ListValueFrom(ctx, types.StringType, ordered)
+		diags.Append(d2...)
+		model.Roles = roleList
+	} else if len(rs.Roles) > 0 {
 		roleKeys := make([]string, len(rs.Roles))
 		for i, role := range rs.Roles {
 			roleKeys[i] = role.Key
@@ -360,8 +389,6 @@ func mapRoleSetResponseToModel(ctx context.Context, rs *clerkgo.RoleSet, model *
 		roleList, d := types.ListValueFrom(ctx, types.StringType, roleKeys)
 		diags.Append(d...)
 		model.Roles = roleList
-	} else if !model.Roles.IsNull() {
-		model.Roles, _ = types.ListValueFrom(ctx, types.StringType, []string{})
 	}
 }
 
