@@ -1,0 +1,1 @@
+terraform import clerk_allowlist_identifier.example <allowlist_identifier_id>

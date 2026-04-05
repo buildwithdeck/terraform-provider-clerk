@@ -31,3 +31,13 @@ resource "clerk_blocklist_identifier" "example" {
 - `id` (String) Unique identifier of the blocklist entry.
 - `identifier_type` (String) The type of identifier (email_address, phone_number, or web3_wallet).
 - `updated_at` (String) Timestamp when the blocklist identifier was last updated.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import clerk_blocklist_identifier.example <blocklist_identifier_id>
+```

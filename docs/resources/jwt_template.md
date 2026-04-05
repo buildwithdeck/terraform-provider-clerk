@@ -46,3 +46,13 @@ resource "clerk_jwt_template" "example" {
 - `created_at` (String) Timestamp when the template was created.
 - `id` (String) Unique identifier of the JWT template.
 - `updated_at` (String) Timestamp when the template was last updated.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import clerk_jwt_template.example <jwt_template_id>
+```

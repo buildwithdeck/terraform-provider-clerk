@@ -47,3 +47,13 @@ Read-Only:
 - `host` (String) The CNAME host.
 - `required` (Boolean) Whether this CNAME record is required.
 - `value` (String) The CNAME value.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import clerk_domain.example <domain_id>
+```

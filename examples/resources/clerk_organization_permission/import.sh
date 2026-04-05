@@ -1,0 +1,1 @@
+terraform import clerk_organization_permission.example <organization_permission_id>

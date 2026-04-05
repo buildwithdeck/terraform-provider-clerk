@@ -41,3 +41,13 @@ resource "clerk_allowlist_identifier" "domain_wildcard" {
 - `created_at` (String) Timestamp when the allowlist entry was created.
 - `id` (String) Unique identifier of the allowlist entry.
 - `updated_at` (String) Timestamp when the allowlist entry was last updated.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import clerk_allowlist_identifier.example <allowlist_identifier_id>
+```

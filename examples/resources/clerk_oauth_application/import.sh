@@ -1,0 +1,1 @@
+terraform import clerk_oauth_application.example <oauth_application_id>

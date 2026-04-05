@@ -35,3 +35,13 @@ resource "clerk_instance_domain" "example" {
 - `accounts_portal_url` (String) The accounts portal URL for this domain.
 - `frontend_api_url` (String) The frontend API URL for this domain.
 - `id` (String) Unique identifier of the domain.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import clerk_instance_domain.example <instance_domain_id>
+```

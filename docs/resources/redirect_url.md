@@ -30,3 +30,13 @@ resource "clerk_redirect_url" "example" {
 - `created_at` (String) Timestamp when the redirect URL was created.
 - `id` (String) Unique identifier of the redirect URL.
 - `updated_at` (String) Timestamp when the redirect URL was last updated.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import clerk_redirect_url.example <redirect_url_id>
+```

@@ -1,0 +1,1 @@
+terraform import clerk_blocklist_identifier.example <blocklist_identifier_id>
