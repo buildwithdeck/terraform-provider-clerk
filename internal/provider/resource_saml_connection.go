@@ -257,7 +257,7 @@ func (r *SAMLConnectionResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Computed:    true,
 				Description: "Timestamp when the SAML connection was last updated.",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					useStateUnlessOtherChanges{},
 				},
 			},
 		},
@@ -526,4 +526,34 @@ func mapSAMLConnectionResponseToModel(conn *clerkgo.SAMLConnection, model *SAMLC
 		"first_name":    types.StringValue(conn.AttributeMapping.FirstName),
 		"last_name":     types.StringValue(conn.AttributeMapping.LastName),
 	})
+}
+
+// useStateUnlessOtherChanges is a plan modifier for computed timestamps.
+// On create (no state), it returns unknown. On update, if the plan has changes
+// it returns unknown (so Terraform expects a new value). If nothing else
+// changed, it preserves the state value (so the plan is empty).
+type useStateUnlessOtherChanges struct{}
+
+func (m useStateUnlessOtherChanges) Description(_ context.Context) string {
+	return "Use state value unless the resource has other planned changes."
+}
+
+func (m useStateUnlessOtherChanges) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m useStateUnlessOtherChanges) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	// On create, state is nil — leave as unknown.
+	if req.StateValue.IsNull() {
+		return
+	}
+
+	// If the overall plan signals the resource will change, mark unknown
+	// so the provider can return a new timestamp without inconsistency.
+	if req.PlanValue.IsUnknown() {
+		return
+	}
+
+	// No other changes: preserve state value so plan is empty.
+	resp.PlanValue = req.StateValue
 }

@@ -45,7 +45,6 @@ func TestAccSAMLConnectionResource(t *testing.T) {
 			// Update name
 			{
 				Config:             testAccSAMLConnectionConfig("Updated SAML Connection", "tf-acc-saml-test.example.com"),
-				ExpectNonEmptyPlan: true, // updated_at changes on every API write
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"clerk_saml_connection.test",
