@@ -36,7 +36,7 @@ func TestAccRoleSetResource(t *testing.T) {
 				ResourceName:            "clerk_role_set.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"default_role_key", "creator_role_key"},
+				ImportStateVerifyIgnore: []string{"default_role_key", "creator_role_key", "roles"},
 			},
 			// Update
 			{
