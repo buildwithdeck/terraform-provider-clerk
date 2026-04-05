@@ -69,7 +69,7 @@ func TestAccOrganizationRoleWithPermissionsResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create role with permission
 			{
-				Config: testAccOrganizationRoleWithPermissionsConfig("Role With Perms", "org:test_role_perms", "org:test_perm_for_role"),
+				Config: testAccOrganizationRoleWithPermissionsConfig("Role With Perms", "org:test_role_perms", "org:test:perm_for_role"),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"clerk_organization_role.test_with_perms",

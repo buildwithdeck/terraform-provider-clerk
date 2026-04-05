@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	clerkgo "github.com/clerk/clerk-sdk-go/v2"
 	"github.com/clerk/clerk-sdk-go/v2/roleset"
@@ -31,14 +32,29 @@ type RoleSetResource struct {
 }
 
 type RoleSetResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Key         types.String `tfsdk:"key"`
-	Description types.String `tfsdk:"description"`
-	Type        types.String `tfsdk:"type"`
-	Roles       types.List   `tfsdk:"roles"`
-	CreatedAt   types.String `tfsdk:"created_at"`
-	UpdatedAt   types.String `tfsdk:"updated_at"`
+	ID             types.String `tfsdk:"id"`
+	Name           types.String `tfsdk:"name"`
+	Key            types.String `tfsdk:"key"`
+	Description    types.String `tfsdk:"description"`
+	Type           types.String `tfsdk:"type"`
+	DefaultRoleKey types.String `tfsdk:"default_role_key"`
+	CreatorRoleKey types.String `tfsdk:"creator_role_key"`
+	Roles          types.List   `tfsdk:"roles"`
+	CreatedAt      types.String `tfsdk:"created_at"`
+	UpdatedAt      types.String `tfsdk:"updated_at"`
+}
+
+// roleSetCreateParams extends the SDK's CreateParams with fields the API
+// requires but the SDK (v2.5.1) does not yet include.
+type roleSetCreateParams struct {
+	clerkgo.APIParams
+	Name           *string   `json:"name,omitempty"`
+	Key            *string   `json:"key,omitempty"`
+	Description    *string   `json:"description,omitempty"`
+	Type           *string   `json:"type,omitempty"`
+	Roles          *[]string `json:"roles,omitempty"`
+	DefaultRoleKey *string   `json:"default_role_key,omitempty"`
+	CreatorRoleKey *string   `json:"creator_role_key,omitempty"`
 }
 
 func (r *RoleSetResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -91,6 +107,14 @@ func (r *RoleSetResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"default_role_key": schema.StringAttribute{
+				Required:    true,
+				Description: "Key of the role automatically assigned to new organization members.",
+			},
+			"creator_role_key": schema.StringAttribute{
+				Required:    true,
+				Description: "Key of the role assigned to the creator of an organization.",
+			},
 			"roles": schema.ListAttribute{
 				Optional:    true,
 				ElementType: types.StringType,
@@ -119,9 +143,11 @@ func (r *RoleSetResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	params := &roleset.CreateParams{
-		Name: clerkgo.String(plan.Name.ValueString()),
-		Key:  clerkgo.String(plan.Key.ValueString()),
+	params := &roleSetCreateParams{
+		Name:           clerkgo.String(plan.Name.ValueString()),
+		Key:            clerkgo.String(plan.Key.ValueString()),
+		DefaultRoleKey: clerkgo.String(plan.DefaultRoleKey.ValueString()),
+		CreatorRoleKey: clerkgo.String(plan.CreatorRoleKey.ValueString()),
 	}
 
 	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
@@ -142,7 +168,10 @@ func (r *RoleSetResource) Create(ctx context.Context, req resource.CreateRequest
 		params.Roles = &roleKeys
 	}
 
-	rs, err := roleset.Create(ctx, params)
+	apiReq := clerkgo.NewAPIRequest(http.MethodPost, "/role_sets")
+	apiReq.SetParams(params)
+	rs := &clerkgo.RoleSet{}
+	err := clerkgo.GetBackend().Call(ctx, apiReq, rs)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create role set", err.Error())
 		return
@@ -211,6 +240,32 @@ func (r *RoleSetResource) Update(ctx context.Context, req resource.UpdateRequest
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update role set", err.Error())
 		return
+	}
+
+	// Update default/creator role keys if changed.
+	if plan.DefaultRoleKey.ValueString() != state.DefaultRoleKey.ValueString() ||
+		plan.CreatorRoleKey.ValueString() != state.CreatorRoleKey.ValueString() {
+		type roleSetUpdateKeysParams struct {
+			clerkgo.APIParams
+			DefaultRoleKey *string `json:"default_role_key,omitempty"`
+			CreatorRoleKey *string `json:"creator_role_key,omitempty"`
+		}
+		keysParams := &roleSetUpdateKeysParams{
+			DefaultRoleKey: clerkgo.String(plan.DefaultRoleKey.ValueString()),
+			CreatorRoleKey: clerkgo.String(plan.CreatorRoleKey.ValueString()),
+		}
+		updatePath, pathErr := clerkgo.JoinPath("/role_sets", state.ID.ValueString())
+		if pathErr != nil {
+			resp.Diagnostics.AddError("Unable to build role set update path", pathErr.Error())
+			return
+		}
+		updateReq := clerkgo.NewAPIRequest(http.MethodPatch, updatePath)
+		updateReq.SetParams(keysParams)
+		rs := &clerkgo.RoleSet{}
+		if err := clerkgo.GetBackend().Call(ctx, updateReq, rs); err != nil {
+			resp.Diagnostics.AddError("Unable to update role set keys", err.Error())
+			return
+		}
 	}
 
 	// Diff roles and apply AddRoles/RemoveRoles.
