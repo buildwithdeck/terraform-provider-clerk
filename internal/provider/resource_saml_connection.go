@@ -42,7 +42,7 @@ type SAMLConnectionResourceModel struct {
 	ID                               types.String                         `tfsdk:"id"`
 	Name                             types.String                         `tfsdk:"name"`
 	Domain                           types.String                         `tfsdk:"domain"`
-	Provider                         types.String                         `tfsdk:"provider"`
+	ProviderType                     types.String                         `tfsdk:"provider_type"`
 	OrganizationID                   types.String                         `tfsdk:"organization_id"`
 	IdpEntityID                      types.String                         `tfsdk:"idp_entity_id"`
 	IdpSsoURL                        types.String                         `tfsdk:"idp_sso_url"`
@@ -102,9 +102,9 @@ func (r *SAMLConnectionResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Required:    true,
 				Description: "Domain for the SAML connection.",
 			},
-			"provider": schema.StringAttribute{
+			"provider_type": schema.StringAttribute{
 				Required:    true,
-				Description: "SAML provider (e.g. saml_custom, saml_okta, saml_google). Cannot be changed after creation.",
+				Description: "SAML provider type (e.g. saml_custom, saml_okta, saml_google). Cannot be changed after creation.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -249,7 +249,7 @@ func (r *SAMLConnectionResource) Create(ctx context.Context, req resource.Create
 	params := &samlconnection.CreateParams{
 		Name:     clerkgo.String(plan.Name.ValueString()),
 		Domain:   clerkgo.String(plan.Domain.ValueString()),
-		Provider: clerkgo.String(plan.Provider.ValueString()),
+		Provider: clerkgo.String(plan.ProviderType.ValueString()),
 	}
 
 	if !plan.OrganizationID.IsNull() && !plan.OrganizationID.IsUnknown() {
@@ -443,7 +443,7 @@ func mapSAMLConnectionResponseToModel(conn *clerkgo.SAMLConnection, model *SAMLC
 	model.ID = types.StringValue(conn.ID)
 	model.Name = types.StringValue(conn.Name)
 	model.Domain = types.StringValue(conn.Domain)
-	model.Provider = types.StringValue(conn.Provider)
+	model.ProviderType = types.StringValue(conn.Provider)
 	model.Active = types.BoolValue(conn.Active)
 	model.SyncUserAttributes = types.BoolValue(conn.SyncUserAttributes)
 	model.AllowSubdomains = types.BoolValue(conn.AllowSubdomains)

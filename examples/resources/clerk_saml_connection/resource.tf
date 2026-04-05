@@ -1,7 +1,7 @@
 resource "clerk_saml_connection" "okta" {
   name           = "Okta SSO"
   domain         = "example.com"
-  provider       = "saml_custom"
+  provider_type  = "saml_custom"
   idp_entity_id  = "http://www.okta.com/exk1234567890"
   idp_sso_url    = "https://example.okta.com/app/example/sso/saml"
 

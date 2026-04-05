@@ -31,7 +31,7 @@ func TestAccSAMLConnectionResource(t *testing.T) {
 					),
 					statecheck.ExpectKnownValue(
 						"clerk_saml_connection.test",
-						tfjsonpath.New("provider"),
+						tfjsonpath.New("provider_type"),
 						knownvalue.StringExact("saml_custom"),
 					),
 				},
@@ -62,7 +62,7 @@ func testAccSAMLConnectionConfig(name, domain string) string {
 resource "clerk_saml_connection" "test" {
   name     = %[1]q
   domain   = %[2]q
-  provider = "saml_custom"
+  provider_type = "saml_custom"
 }
 `, name, domain)
 }
