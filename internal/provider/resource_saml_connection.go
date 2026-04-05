@@ -6,11 +6,14 @@ import (
 
 	clerkgo "github.com/clerk/clerk-sdk-go/v2"
 	"github.com/clerk/clerk-sdk-go/v2/samlconnection"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -38,6 +41,13 @@ type SAMLConnectionAttributeMappingModel struct {
 	LastName     types.String `tfsdk:"last_name"`
 }
 
+var samlAttributeMappingAttrTypes = map[string]attr.Type{
+	"user_id":       types.StringType,
+	"email_address": types.StringType,
+	"first_name":    types.StringType,
+	"last_name":     types.StringType,
+}
+
 type SAMLConnectionResourceModel struct {
 	ID                               types.String                         `tfsdk:"id"`
 	Name                             types.String                         `tfsdk:"name"`
@@ -49,7 +59,7 @@ type SAMLConnectionResourceModel struct {
 	IdpCertificate                   types.String                         `tfsdk:"idp_certificate"`
 	IdpMetadataURL                   types.String                         `tfsdk:"idp_metadata_url"`
 	IdpMetadata                      types.String                         `tfsdk:"idp_metadata"`
-	AttributeMapping                 *SAMLConnectionAttributeMappingModel `tfsdk:"attribute_mapping"`
+	AttributeMapping                 types.Object                         `tfsdk:"attribute_mapping"`
 	Active                           types.Bool                           `tfsdk:"active"`
 	SyncUserAttributes               types.Bool                           `tfsdk:"sync_user_attributes"`
 	AllowSubdomains                  types.Bool                           `tfsdk:"allow_subdomains"`
@@ -138,6 +148,9 @@ func (r *SAMLConnectionResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Optional:    true,
 				Computed:    true,
 				Description: "Mapping of SAML attributes to Clerk user fields.",
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"user_id": schema.StringAttribute{
 						Required:    true,
@@ -286,12 +299,18 @@ func (r *SAMLConnectionResource) Create(ctx context.Context, req resource.Create
 		params.IdpMetadata = clerkgo.String(plan.IdpMetadata.ValueString())
 	}
 
-	if plan.AttributeMapping != nil {
+	if !plan.AttributeMapping.IsNull() && !plan.AttributeMapping.IsUnknown() {
+		var am SAMLConnectionAttributeMappingModel
+		diags = plan.AttributeMapping.As(ctx, &am, basetypes.ObjectAsOptions{})
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 		params.AttributeMapping = &samlconnection.AttributeMappingParams{
-			UserID:       plan.AttributeMapping.UserID.ValueString(),
-			EmailAddress: plan.AttributeMapping.EmailAddress.ValueString(),
-			FirstName:    plan.AttributeMapping.FirstName.ValueString(),
-			LastName:     plan.AttributeMapping.LastName.ValueString(),
+			UserID:       am.UserID.ValueString(),
+			EmailAddress: am.EmailAddress.ValueString(),
+			FirstName:    am.FirstName.ValueString(),
+			LastName:     am.LastName.ValueString(),
 		}
 	}
 
@@ -379,12 +398,18 @@ func (r *SAMLConnectionResource) Update(ctx context.Context, req resource.Update
 		params.IdpMetadata = clerkgo.String(plan.IdpMetadata.ValueString())
 	}
 
-	if plan.AttributeMapping != nil {
+	if !plan.AttributeMapping.IsNull() && !plan.AttributeMapping.IsUnknown() {
+		var am SAMLConnectionAttributeMappingModel
+		diags = plan.AttributeMapping.As(ctx, &am, basetypes.ObjectAsOptions{})
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 		params.AttributeMapping = &samlconnection.AttributeMappingParams{
-			UserID:       plan.AttributeMapping.UserID.ValueString(),
-			EmailAddress: plan.AttributeMapping.EmailAddress.ValueString(),
-			FirstName:    plan.AttributeMapping.FirstName.ValueString(),
-			LastName:     plan.AttributeMapping.LastName.ValueString(),
+			UserID:       am.UserID.ValueString(),
+			EmailAddress: am.EmailAddress.ValueString(),
+			FirstName:    am.FirstName.ValueString(),
+			LastName:     am.LastName.ValueString(),
 		}
 	}
 
@@ -492,13 +517,10 @@ func mapSAMLConnectionResponseToModel(conn *clerkgo.SAMLConnection, model *SAMLC
 	}
 
 	// Always populate attribute_mapping from API response
-	if conn.AttributeMapping.UserID != "" || conn.AttributeMapping.EmailAddress != "" ||
-		conn.AttributeMapping.FirstName != "" || conn.AttributeMapping.LastName != "" {
-		model.AttributeMapping = &SAMLConnectionAttributeMappingModel{
-			UserID:       types.StringValue(conn.AttributeMapping.UserID),
-			EmailAddress: types.StringValue(conn.AttributeMapping.EmailAddress),
-			FirstName:    types.StringValue(conn.AttributeMapping.FirstName),
-			LastName:     types.StringValue(conn.AttributeMapping.LastName),
-		}
-	}
+	model.AttributeMapping = types.ObjectValueMust(samlAttributeMappingAttrTypes, map[string]attr.Value{
+		"user_id":       types.StringValue(conn.AttributeMapping.UserID),
+		"email_address": types.StringValue(conn.AttributeMapping.EmailAddress),
+		"first_name":    types.StringValue(conn.AttributeMapping.FirstName),
+		"last_name":     types.StringValue(conn.AttributeMapping.LastName),
+	})
 }
