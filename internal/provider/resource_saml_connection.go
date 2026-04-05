@@ -136,6 +136,7 @@ func (r *SAMLConnectionResource) Schema(_ context.Context, _ resource.SchemaRequ
 			},
 			"attribute_mapping": schema.SingleNestedAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Mapping of SAML attributes to Clerk user fields.",
 				Attributes: map[string]schema.Attribute{
 					"user_id": schema.StringAttribute{
@@ -207,14 +208,23 @@ func (r *SAMLConnectionResource) Schema(_ context.Context, _ resource.SchemaRequ
 			"acs_url": schema.StringAttribute{
 				Computed:    true,
 				Description: "Assertion Consumer Service URL.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"sp_entity_id": schema.StringAttribute{
 				Computed:    true,
 				Description: "Service Provider entity ID.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"sp_metadata_url": schema.StringAttribute{
 				Computed:    true,
 				Description: "Service Provider metadata URL.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"user_count": schema.Int64Attribute{
 				Computed:    true,
@@ -296,15 +306,6 @@ func (r *SAMLConnectionResource) Create(ctx context.Context, req resource.Create
 	}
 
 	mapSAMLConnectionResponseToModel(conn, &plan)
-	// Only populate attribute_mapping if the user configured it
-	if plan.AttributeMapping != nil {
-		plan.AttributeMapping = &SAMLConnectionAttributeMappingModel{
-			UserID:       types.StringValue(conn.AttributeMapping.UserID),
-			EmailAddress: types.StringValue(conn.AttributeMapping.EmailAddress),
-			FirstName:    types.StringValue(conn.AttributeMapping.FirstName),
-			LastName:     types.StringValue(conn.AttributeMapping.LastName),
-		}
-	}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -329,16 +330,6 @@ func (r *SAMLConnectionResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 
 	mapSAMLConnectionResponseToModel(conn, &state)
-	// Always populate attribute_mapping on Read (needed for import and refresh)
-	if conn.AttributeMapping.UserID != "" || conn.AttributeMapping.EmailAddress != "" ||
-		conn.AttributeMapping.FirstName != "" || conn.AttributeMapping.LastName != "" {
-		state.AttributeMapping = &SAMLConnectionAttributeMappingModel{
-			UserID:       types.StringValue(conn.AttributeMapping.UserID),
-			EmailAddress: types.StringValue(conn.AttributeMapping.EmailAddress),
-			FirstName:    types.StringValue(conn.AttributeMapping.FirstName),
-			LastName:     types.StringValue(conn.AttributeMapping.LastName),
-		}
-	}
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -428,14 +419,6 @@ func (r *SAMLConnectionResource) Update(ctx context.Context, req resource.Update
 	}
 
 	mapSAMLConnectionResponseToModel(conn, &plan)
-	if plan.AttributeMapping != nil {
-		plan.AttributeMapping = &SAMLConnectionAttributeMappingModel{
-			UserID:       types.StringValue(conn.AttributeMapping.UserID),
-			EmailAddress: types.StringValue(conn.AttributeMapping.EmailAddress),
-			FirstName:    types.StringValue(conn.AttributeMapping.FirstName),
-			LastName:     types.StringValue(conn.AttributeMapping.LastName),
-		}
-	}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -508,7 +491,14 @@ func mapSAMLConnectionResponseToModel(conn *clerkgo.SAMLConnection, model *SAMLC
 		model.IdpMetadata = types.StringValue(*conn.IdpMetadata)
 	}
 
-	// attribute_mapping is not set here — handled by callers.
-	// The API returns defaults even when none were configured, which would
-	// cause an inconsistent result error on Create if blindly populated.
+	// Always populate attribute_mapping from API response
+	if conn.AttributeMapping.UserID != "" || conn.AttributeMapping.EmailAddress != "" ||
+		conn.AttributeMapping.FirstName != "" || conn.AttributeMapping.LastName != "" {
+		model.AttributeMapping = &SAMLConnectionAttributeMappingModel{
+			UserID:       types.StringValue(conn.AttributeMapping.UserID),
+			EmailAddress: types.StringValue(conn.AttributeMapping.EmailAddress),
+			FirstName:    types.StringValue(conn.AttributeMapping.FirstName),
+			LastName:     types.StringValue(conn.AttributeMapping.LastName),
+		}
+	}
 }
