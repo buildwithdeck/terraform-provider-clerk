@@ -230,7 +230,8 @@ func (r *RoleSetResource) Update(ctx context.Context, req resource.UpdateRequest
 		params.Description = clerkgo.String(plan.Description.ValueString())
 	}
 
-	if !plan.Type.IsNull() && !plan.Type.IsUnknown() {
+	if !plan.Type.IsNull() && !plan.Type.IsUnknown() &&
+		plan.Type.ValueString() != state.Type.ValueString() {
 		params.Type = clerkgo.String(plan.Type.ValueString())
 	}
 
