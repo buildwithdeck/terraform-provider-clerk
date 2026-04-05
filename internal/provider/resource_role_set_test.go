@@ -17,7 +17,7 @@ func TestAccRoleSetResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and verify
 			{
-				Config: testAccRoleSetConfig("Test Role Set", "test_role_set", "A test role set"),
+				Config: testAccRoleSetConfig("Test Role Set", "role_set:test_role_set", "A test role set"),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"clerk_role_set.test",
@@ -27,7 +27,7 @@ func TestAccRoleSetResource(t *testing.T) {
 					statecheck.ExpectKnownValue(
 						"clerk_role_set.test",
 						tfjsonpath.New("key"),
-						knownvalue.StringExact("test_role_set"),
+						knownvalue.StringExact("role_set:test_role_set"),
 					),
 				},
 			},
@@ -40,7 +40,7 @@ func TestAccRoleSetResource(t *testing.T) {
 			},
 			// Update
 			{
-				Config: testAccRoleSetConfig("Updated Role Set", "test_role_set", "An updated role set"),
+				Config: testAccRoleSetConfig("Updated Role Set", "role_set:test_role_set", "An updated role set"),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"clerk_role_set.test",
@@ -114,7 +114,7 @@ resource "clerk_organization_role" "test_for_role_set" {
 
 resource "clerk_role_set" "test_with_roles" {
   name             = "Role Set With Roles"
-  key              = "test_role_set_with_roles"
+  key              = "role_set:test_role_set_with_roles"
   default_role_key = clerk_organization_role.default_for_roles_set.key
   creator_role_key = clerk_organization_role.creator_for_roles_set.key
   roles            = [clerk_organization_role.test_for_role_set.key]
