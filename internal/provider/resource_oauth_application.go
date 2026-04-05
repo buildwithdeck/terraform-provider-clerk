@@ -279,7 +279,12 @@ func mapOAuthApplicationResponseToModel(app *clerkgo.OAuthApplication, model *OA
 	model.ID = types.StringValue(app.ID)
 	model.Name = types.StringValue(app.Name)
 	model.CallbackURL = types.StringValue(app.CallbackURL)
-	model.Scopes = types.StringValue(app.Scopes)
+	// Scopes: the API may reorder and add implicit scopes (e.g. offline_access).
+	// Preserve the user's configured value to avoid inconsistent result errors.
+	// Only set from API when model has no value (e.g. during import).
+	if model.Scopes.IsNull() || model.Scopes.IsUnknown() {
+		model.Scopes = types.StringValue(app.Scopes)
+	}
 	model.Public = types.BoolValue(app.Public)
 	model.ConsentScreenEnabled = types.BoolValue(app.ConsentScreenEnabled)
 	model.ClientID = types.StringValue(app.ClientID)
