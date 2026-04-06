@@ -50,11 +50,18 @@ func (r *JWTTemplateResource) Configure(_ context.Context, req resource.Configur
 	if req.ProviderData == nil {
 		return
 	}
-	_, ok := req.ProviderData.(ProviderData)
+	data, ok := req.ProviderData.(ProviderData)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
 			"Expected ProviderData, got something else. Please report this issue.",
+		)
+		return
+	}
+	if data.APIKey == "" {
+		resp.Diagnostics.AddError(
+			"Missing Clerk API Key",
+			"The clerk_jwt_template resource requires an api_key. Set it in the provider configuration or via the CLERK_API_KEY environment variable.",
 		)
 		return
 	}
