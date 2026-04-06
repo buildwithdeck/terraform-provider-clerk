@@ -87,16 +87,9 @@ func (p *ClerkProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		apiKey = config.APIKey.ValueString()
 	}
 
-	if apiKey == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("api_key"),
-			"Missing Clerk API Key",
-			"Set the api_key in the provider configuration or via the CLERK_API_KEY environment variable.",
-		)
-		return
+	if apiKey != "" {
+		clerkgo.SetKey(apiKey)
 	}
-
-	clerkgo.SetKey(apiKey)
 
 	// Resolve optional Platform API key.
 	platformAPIKey := os.Getenv("CLERK_PLATFORM_API_KEY")

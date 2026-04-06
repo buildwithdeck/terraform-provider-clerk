@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -14,8 +16,9 @@ import (
 )
 
 var (
-	_ resource.Resource              = &InstanceConfigResource{}
-	_ resource.ResourceWithConfigure = &InstanceConfigResource{}
+	_ resource.Resource                = &InstanceConfigResource{}
+	_ resource.ResourceWithConfigure   = &InstanceConfigResource{}
+	_ resource.ResourceWithImportState = &InstanceConfigResource{}
 )
 
 func NewInstanceConfigResource() resource.Resource {
@@ -232,6 +235,21 @@ func (r *InstanceConfigResource) Delete(ctx context.Context, req resource.Delete
 	tflog.Debug(ctx, "Removing instance config from state (no-op, singleton resource)", map[string]any{
 		"id": state.ID.ValueString(),
 	})
+}
+
+func (r *InstanceConfigResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.Split(req.ID, "/")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		resp.Diagnostics.AddError(
+			"Invalid import ID",
+			fmt.Sprintf("Expected format: application_id/instance_id, got: %s", req.ID),
+		)
+		return
+	}
+
+	resp.State.SetAttribute(ctx, path.Root("application_id"), types.StringValue(parts[0]))
+	resp.State.SetAttribute(ctx, path.Root("instance_id"), types.StringValue(parts[1]))
+	resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(req.ID))
 }
 
 // filterConfigKeys recursively filters apiConfig to only include the keys
