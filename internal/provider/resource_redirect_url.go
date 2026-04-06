@@ -26,7 +26,7 @@ func NewRedirectURLResource() resource.Resource {
 }
 
 type RedirectURLResource struct {
-	configured bool
+	client *redirecturl.Client
 }
 
 type RedirectURLResourceModel struct {
@@ -55,7 +55,7 @@ func (r *RedirectURLResource) Configure(_ context.Context, req resource.Configur
 		)
 		return
 	}
-	r.configured = true
+	r.client = redirecturl.NewClient(&clerkgo.ClientConfig{BackendConfig: clerkgo.BackendConfig{Key: clerkgo.String(data.APIKey)}})
 }
 
 func (r *RedirectURLResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -107,7 +107,7 @@ func (r *RedirectURLResource) Create(ctx context.Context, req resource.CreateReq
 		URL: clerkgo.String(plan.URL.ValueString()),
 	}
 
-	result, err := redirecturl.Create(ctx, params)
+	result, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create redirect URL", err.Error())
 		return
@@ -128,7 +128,7 @@ func (r *RedirectURLResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	result, err := redirecturl.Get(ctx, state.ID.ValueString())
+	result, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read redirect URL",
@@ -158,7 +158,7 @@ func (r *RedirectURLResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	_, err := redirecturl.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete redirect URL",

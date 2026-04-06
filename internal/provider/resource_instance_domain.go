@@ -27,7 +27,7 @@ func NewInstanceDomainResource() resource.Resource {
 }
 
 type InstanceDomainResource struct {
-	configured bool
+	client *domain.Client
 }
 
 type InstanceDomainResourceModel struct {
@@ -58,7 +58,7 @@ func (r *InstanceDomainResource) Configure(_ context.Context, req resource.Confi
 		)
 		return
 	}
-	r.configured = true
+	r.client = domain.NewClient(&clerkgo.ClientConfig{BackendConfig: clerkgo.BackendConfig{Key: clerkgo.String(data.APIKey)}})
 }
 
 func (r *InstanceDomainResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -136,7 +136,7 @@ func (r *InstanceDomainResource) Create(ctx context.Context, req resource.Create
 		params.ProxyURL = clerkgo.String(plan.ProxyURL.ValueString())
 	}
 
-	d, err := domain.Create(ctx, params)
+	d, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create instance domain", err.Error())
 		return
@@ -158,7 +158,7 @@ func (r *InstanceDomainResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 
 	// The Instance API has no Get endpoint for domains; use List and filter.
-	list, err := domain.List(ctx, &domain.ListParams{})
+	list, err := r.client.List(ctx, &domain.ListParams{})
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read instance domain",
@@ -210,7 +210,7 @@ func (r *InstanceDomainResource) Update(ctx context.Context, req resource.Update
 		params.ProxyURL = clerkgo.String(plan.ProxyURL.ValueString())
 	}
 
-	d, err := domain.Update(ctx, state.ID.ValueString(), params)
+	d, err := r.client.Update(ctx, state.ID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update instance domain", err.Error())
 		return
@@ -231,7 +231,7 @@ func (r *InstanceDomainResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	_, err := domain.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete instance domain",

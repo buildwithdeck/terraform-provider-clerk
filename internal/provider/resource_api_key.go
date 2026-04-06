@@ -29,7 +29,7 @@ func NewAPIKeyResource() resource.Resource {
 }
 
 type APIKeyResource struct {
-	configured bool
+	client *apikey.Client
 }
 
 type APIKeyResourceModel struct {
@@ -70,7 +70,11 @@ func (r *APIKeyResource) Configure(_ context.Context, req resource.ConfigureRequ
 		)
 		return
 	}
-	r.configured = true
+	r.client = apikey.NewClient(&clerkgo.ClientConfig{
+		BackendConfig: clerkgo.BackendConfig{
+			Key: clerkgo.String(data.APIKey),
+		},
+	})
 }
 
 func (r *APIKeyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -224,7 +228,7 @@ func (r *APIKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		params.SecondsUntilExpiration = clerkgo.Int64(plan.SecondsUntilExpiration.ValueInt64())
 	}
 
-	key, err := apikey.Create(ctx, params)
+	key, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create API key", err.Error())
 		return
@@ -251,7 +255,7 @@ func (r *APIKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	key, err := apikey.Get(ctx, state.ID.ValueString())
+	key, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read API key",
@@ -308,7 +312,7 @@ func (r *APIKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		params.SecondsUntilExpiration = clerkgo.Int64(plan.SecondsUntilExpiration.ValueInt64())
 	}
 
-	key, err := apikey.Update(ctx, state.ID.ValueString(), params)
+	key, err := r.client.Update(ctx, state.ID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update API key", err.Error())
 		return
@@ -335,7 +339,7 @@ func (r *APIKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	_, err := apikey.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete API key",

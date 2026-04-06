@@ -30,7 +30,7 @@ func NewOrganizationResource() resource.Resource {
 }
 
 type OrganizationResource struct {
-	configured bool
+	client *organization.Client
 }
 
 type OrganizationResourceModel struct {
@@ -65,7 +65,11 @@ func (r *OrganizationResource) Configure(_ context.Context, req resource.Configu
 		)
 		return
 	}
-	r.configured = true
+	r.client = organization.NewClient(&clerkgo.ClientConfig{
+		BackendConfig: clerkgo.BackendConfig{
+			Key: clerkgo.String(data.APIKey),
+		},
+	})
 }
 
 func (r *OrganizationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -172,7 +176,7 @@ func (r *OrganizationResource) Create(ctx context.Context, req resource.CreateRe
 		params.PrivateMetadata = &raw
 	}
 
-	org, err := organization.Create(ctx, params)
+	org, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create organization", err.Error())
 		return
@@ -193,7 +197,7 @@ func (r *OrganizationResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	org, err := organization.Get(ctx, state.ID.ValueString())
+	org, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read organization",
@@ -245,7 +249,7 @@ func (r *OrganizationResource) Update(ctx context.Context, req resource.UpdateRe
 		params.PrivateMetadata = &raw
 	}
 
-	org, err := organization.Update(ctx, state.ID.ValueString(), params)
+	org, err := r.client.Update(ctx, state.ID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update organization", err.Error())
 		return
@@ -266,7 +270,7 @@ func (r *OrganizationResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	_, err := organization.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete organization",

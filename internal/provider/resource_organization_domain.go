@@ -27,7 +27,7 @@ func NewOrganizationDomainResource() resource.Resource {
 }
 
 type OrganizationDomainResource struct {
-	configured bool
+	client *organizationdomain.Client
 }
 
 type OrganizationDomainResourceModel struct {
@@ -61,7 +61,11 @@ func (r *OrganizationDomainResource) Configure(_ context.Context, req resource.C
 		)
 		return
 	}
-	r.configured = true
+	r.client = organizationdomain.NewClient(&clerkgo.ClientConfig{
+		BackendConfig: clerkgo.BackendConfig{
+			Key: clerkgo.String(data.APIKey),
+		},
+	})
 }
 
 func (r *OrganizationDomainResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -148,7 +152,7 @@ func (r *OrganizationDomainResource) Create(ctx context.Context, req resource.Cr
 		params.Verified = clerkgo.Bool(plan.Verified.ValueBool())
 	}
 
-	domain, err := organizationdomain.Create(ctx, plan.OrganizationID.ValueString(), params)
+	domain, err := r.client.Create(ctx, plan.OrganizationID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create organization domain", err.Error())
 		return
@@ -170,7 +174,7 @@ func (r *OrganizationDomainResource) Read(ctx context.Context, req resource.Read
 	}
 
 	// No Get endpoint — use List and filter by ID.
-	list, err := organizationdomain.List(ctx, state.OrganizationID.ValueString(), &organizationdomain.ListParams{})
+	list, err := r.client.List(ctx, state.OrganizationID.ValueString(), &organizationdomain.ListParams{})
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read organization domain",
@@ -222,7 +226,7 @@ func (r *OrganizationDomainResource) Update(ctx context.Context, req resource.Up
 		params.EnrollmentMode = clerkgo.String(plan.EnrollmentMode.ValueString())
 	}
 
-	domain, err := organizationdomain.Update(ctx, params)
+	domain, err := r.client.Update(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update organization domain", err.Error())
 		return
@@ -243,7 +247,7 @@ func (r *OrganizationDomainResource) Delete(ctx context.Context, req resource.De
 		return
 	}
 
-	_, err := organizationdomain.Delete(ctx, &organizationdomain.DeleteParams{
+	_, err := r.client.Delete(ctx, &organizationdomain.DeleteParams{
 		OrganizationID: state.OrganizationID.ValueString(),
 		DomainID:       state.ID.ValueString(),
 	})

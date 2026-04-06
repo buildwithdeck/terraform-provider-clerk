@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 
+	clerkgo "github.com/clerk/clerk-sdk-go/v2"
 	"github.com/clerk/clerk-sdk-go/v2/svixwebhook"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -22,7 +23,7 @@ func NewSvixWebhookResource() resource.Resource {
 }
 
 type SvixWebhookResource struct {
-	configured bool
+	client *svixwebhook.Client
 }
 
 type SvixWebhookResourceModel struct {
@@ -49,7 +50,11 @@ func (r *SvixWebhookResource) Configure(_ context.Context, req resource.Configur
 		)
 		return
 	}
-	r.configured = true
+	r.client = svixwebhook.NewClient(&clerkgo.ClientConfig{
+		BackendConfig: clerkgo.BackendConfig{
+			Key: clerkgo.String(data.APIKey),
+		},
+	})
 }
 
 func (r *SvixWebhookResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -86,7 +91,7 @@ func (r *SvixWebhookResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	webhook, err := svixwebhook.Create(ctx)
+	webhook, err := r.client.Create(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create Svix webhook integration", err.Error())
 		return
@@ -127,7 +132,7 @@ func (r *SvixWebhookResource) Update(ctx context.Context, req resource.UpdateReq
 }
 
 func (r *SvixWebhookResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
-	_, err := svixwebhook.Delete(ctx)
+	_, err := r.client.Delete(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to delete Svix webhook integration", err.Error())
 		return

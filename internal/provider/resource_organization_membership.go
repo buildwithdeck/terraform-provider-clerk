@@ -27,7 +27,7 @@ func NewOrganizationMembershipResource() resource.Resource {
 }
 
 type OrganizationMembershipResource struct {
-	configured bool
+	client *organizationmembership.Client
 }
 
 type OrganizationMembershipResourceModel struct {
@@ -59,7 +59,11 @@ func (r *OrganizationMembershipResource) Configure(_ context.Context, req resour
 		)
 		return
 	}
-	r.configured = true
+	r.client = organizationmembership.NewClient(&clerkgo.ClientConfig{
+		BackendConfig: clerkgo.BackendConfig{
+			Key: clerkgo.String(data.APIKey),
+		},
+	})
 }
 
 func (r *OrganizationMembershipResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -128,7 +132,7 @@ func (r *OrganizationMembershipResource) Create(ctx context.Context, req resourc
 		Role:           clerkgo.String(plan.Role.ValueString()),
 	}
 
-	membership, err := organizationmembership.Create(ctx, params)
+	membership, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create organization membership", err.Error())
 		return
@@ -150,7 +154,7 @@ func (r *OrganizationMembershipResource) Read(ctx context.Context, req resource.
 	}
 
 	// No Get endpoint — use List with UserIDs filter.
-	list, err := organizationmembership.List(ctx, &organizationmembership.ListParams{
+	list, err := r.client.List(ctx, &organizationmembership.ListParams{
 		OrganizationID: state.OrganizationID.ValueString(),
 		UserIDs:        []string{state.UserID.ValueString()},
 	})
@@ -202,7 +206,7 @@ func (r *OrganizationMembershipResource) Update(ctx context.Context, req resourc
 		Role:           clerkgo.String(plan.Role.ValueString()),
 	}
 
-	membership, err := organizationmembership.Update(ctx, params)
+	membership, err := r.client.Update(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update organization membership", err.Error())
 		return
@@ -223,7 +227,7 @@ func (r *OrganizationMembershipResource) Delete(ctx context.Context, req resourc
 		return
 	}
 
-	_, err := organizationmembership.Delete(ctx, &organizationmembership.DeleteParams{
+	_, err := r.client.Delete(ctx, &organizationmembership.DeleteParams{
 		OrganizationID: state.OrganizationID.ValueString(),
 		UserID:         state.UserID.ValueString(),
 	})

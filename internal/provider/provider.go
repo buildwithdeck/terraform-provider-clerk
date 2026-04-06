@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 
-	clerkgo "github.com/clerk/clerk-sdk-go/v2"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -47,7 +46,7 @@ func (p *ClerkProvider) Metadata(_ context.Context, _ provider.MetadataRequest, 
 
 func (p *ClerkProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manage Clerk resources. This provider uses two APIs: the Instance API (for jwt_template, organization, application_settings, instance_domain) requires an instance secret key (api_key), and the Platform API (for application, domain, instance_config) requires a Platform API beta key (platform_api_key).",
+		Description: "Manage Clerk resources. Supports two usage modes: Instance-only (api_key) for managing resources within a single Clerk instance (organizations, JWT templates, application_settings, SAML, OAuth, etc.), or Platform + Instance (platform_api_key + api_key) for provisioning applications and configuring instances via the Platform API beta. Either key can be omitted — resources that require the missing key produce a clear error. Note: clerk_application_settings (Instance API) manages organization feature flags, while clerk_instance_config (Platform API) manages broader instance configuration.",
 		Attributes: map[string]schema.Attribute{
 			"api_key": schema.StringAttribute{
 				Optional:    true,
@@ -85,10 +84,6 @@ func (p *ClerkProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	apiKey := os.Getenv("CLERK_API_KEY")
 	if !config.APIKey.IsNull() {
 		apiKey = config.APIKey.ValueString()
-	}
-
-	if apiKey != "" {
-		clerkgo.SetKey(apiKey)
 	}
 
 	// Resolve optional Platform API key.
@@ -134,5 +129,7 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 }
 
 func (p *ClerkProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		NewApplicationDataSource,
+	}
 }
