@@ -28,7 +28,7 @@ func NewOrganizationRoleResource() resource.Resource {
 }
 
 type OrganizationRoleResource struct {
-	configured bool
+	client *organizationrole.Client
 }
 
 type OrganizationRoleResourceModel struct {
@@ -61,7 +61,7 @@ func (r *OrganizationRoleResource) Configure(_ context.Context, req resource.Con
 		)
 		return
 	}
-	r.configured = true
+	r.client = organizationrole.NewClient(&clerkgo.ClientConfig{BackendConfig: clerkgo.BackendConfig{Key: clerkgo.String(data.APIKey)}})
 }
 
 func (r *OrganizationRoleResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -145,7 +145,7 @@ func (r *OrganizationRoleResource) Create(ctx context.Context, req resource.Crea
 		params.Permissions = &permIDs
 	}
 
-	role, err := organizationrole.Create(ctx, params)
+	role, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create organization role", err.Error())
 		return
@@ -166,7 +166,7 @@ func (r *OrganizationRoleResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	role, err := organizationrole.Get(ctx, state.ID.ValueString())
+	role, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read organization role",
@@ -215,7 +215,7 @@ func (r *OrganizationRoleResource) Update(ctx context.Context, req resource.Upda
 		params.Permissions = &permIDs
 	}
 
-	role, err := organizationrole.Update(ctx, state.ID.ValueString(), params)
+	role, err := r.client.Update(ctx, state.ID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update organization role", err.Error())
 		return
@@ -236,7 +236,7 @@ func (r *OrganizationRoleResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	_, err := organizationrole.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete organization role",

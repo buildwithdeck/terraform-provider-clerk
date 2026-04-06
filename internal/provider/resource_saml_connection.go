@@ -30,7 +30,7 @@ func NewSAMLConnectionResource() resource.Resource {
 }
 
 type SAMLConnectionResource struct {
-	configured bool
+	client *samlconnection.Client
 }
 
 type SAMLConnectionAttributeMappingModel struct {
@@ -92,7 +92,11 @@ func (r *SAMLConnectionResource) Configure(_ context.Context, req resource.Confi
 		)
 		return
 	}
-	r.configured = true
+	r.client = samlconnection.NewClient(&clerkgo.ClientConfig{
+		BackendConfig: clerkgo.BackendConfig{
+			Key: clerkgo.String(data.APIKey),
+		},
+	})
 }
 
 func (r *SAMLConnectionResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -320,7 +324,7 @@ func (r *SAMLConnectionResource) Create(ctx context.Context, req resource.Create
 		params.ForceAuthn = clerkgo.Bool(plan.ForceAuthn.ValueBool())
 	}
 
-	conn, err := samlconnection.Create(ctx, params)
+	conn, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create SAML connection", err.Error())
 		return
@@ -341,7 +345,7 @@ func (r *SAMLConnectionResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	conn, err := samlconnection.Get(ctx, state.ID.ValueString())
+	conn, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read SAML connection",
@@ -439,7 +443,7 @@ func (r *SAMLConnectionResource) Update(ctx context.Context, req resource.Update
 		params.ForceAuthn = clerkgo.Bool(plan.ForceAuthn.ValueBool())
 	}
 
-	conn, err := samlconnection.Update(ctx, state.ID.ValueString(), params)
+	conn, err := r.client.Update(ctx, state.ID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update SAML connection", err.Error())
 		return
@@ -460,7 +464,7 @@ func (r *SAMLConnectionResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	_, err := samlconnection.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete SAML connection",

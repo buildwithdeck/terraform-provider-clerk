@@ -27,7 +27,7 @@ func NewOAuthApplicationResource() resource.Resource {
 }
 
 type OAuthApplicationResource struct {
-	configured bool
+	client *oauthapplication.Client
 }
 
 type OAuthApplicationResourceModel struct {
@@ -66,7 +66,11 @@ func (r *OAuthApplicationResource) Configure(_ context.Context, req resource.Con
 		)
 		return
 	}
-	r.configured = true
+	r.client = oauthapplication.NewClient(&clerkgo.ClientConfig{
+		BackendConfig: clerkgo.BackendConfig{
+			Key: clerkgo.String(data.APIKey),
+		},
+	})
 }
 
 func (r *OAuthApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -176,7 +180,7 @@ func (r *OAuthApplicationResource) Create(ctx context.Context, req resource.Crea
 		params.ConsentScreenEnabled = clerkgo.Bool(plan.ConsentScreenEnabled.ValueBool())
 	}
 
-	app, err := oauthapplication.Create(ctx, params)
+	app, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create OAuth application", err.Error())
 		return
@@ -202,7 +206,7 @@ func (r *OAuthApplicationResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	app, err := oauthapplication.Get(ctx, state.ID.ValueString())
+	app, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read OAuth application",
@@ -242,7 +246,7 @@ func (r *OAuthApplicationResource) Update(ctx context.Context, req resource.Upda
 		params.ConsentScreenEnabled = clerkgo.Bool(plan.ConsentScreenEnabled.ValueBool())
 	}
 
-	app, err := oauthapplication.Update(ctx, state.ID.ValueString(), params)
+	app, err := r.client.Update(ctx, state.ID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update OAuth application", err.Error())
 		return
@@ -266,7 +270,7 @@ func (r *OAuthApplicationResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	_, err := oauthapplication.DeleteOAuthApplication(ctx, state.ID.ValueString())
+	_, err := r.client.DeleteOAuthApplication(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete OAuth application",

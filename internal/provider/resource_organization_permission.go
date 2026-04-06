@@ -26,7 +26,7 @@ func NewOrganizationPermissionResource() resource.Resource {
 }
 
 type OrganizationPermissionResource struct {
-	configured bool
+	client *organizationpermission.Client
 }
 
 type OrganizationPermissionResourceModel struct {
@@ -58,7 +58,7 @@ func (r *OrganizationPermissionResource) Configure(_ context.Context, req resour
 		)
 		return
 	}
-	r.configured = true
+	r.client = organizationpermission.NewClient(&clerkgo.ClientConfig{BackendConfig: clerkgo.BackendConfig{Key: clerkgo.String(data.APIKey)}})
 }
 
 func (r *OrganizationPermissionResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -127,7 +127,7 @@ func (r *OrganizationPermissionResource) Create(ctx context.Context, req resourc
 		params.Description = clerkgo.String(plan.Description.ValueString())
 	}
 
-	perm, err := organizationpermission.Create(ctx, params)
+	perm, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create organization permission", err.Error())
 		return
@@ -148,7 +148,7 @@ func (r *OrganizationPermissionResource) Read(ctx context.Context, req resource.
 		return
 	}
 
-	perm, err := organizationpermission.Get(ctx, state.ID.ValueString())
+	perm, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read organization permission",
@@ -187,7 +187,7 @@ func (r *OrganizationPermissionResource) Update(ctx context.Context, req resourc
 		params.Description = clerkgo.String(plan.Description.ValueString())
 	}
 
-	perm, err := organizationpermission.Update(ctx, state.ID.ValueString(), params)
+	perm, err := r.client.Update(ctx, state.ID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update organization permission", err.Error())
 		return
@@ -208,7 +208,7 @@ func (r *OrganizationPermissionResource) Delete(ctx context.Context, req resourc
 		return
 	}
 
-	_, err := organizationpermission.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete organization permission",

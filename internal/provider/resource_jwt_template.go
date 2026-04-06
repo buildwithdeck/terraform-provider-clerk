@@ -30,7 +30,7 @@ func NewJWTTemplateResource() resource.Resource {
 }
 
 type JWTTemplateResource struct {
-	configured bool
+	client *jwttemplate.Client
 }
 
 type JWTTemplateResourceModel struct {
@@ -65,7 +65,11 @@ func (r *JWTTemplateResource) Configure(_ context.Context, req resource.Configur
 		)
 		return
 	}
-	r.configured = true
+	r.client = jwttemplate.NewClient(&clerkgo.ClientConfig{
+		BackendConfig: clerkgo.BackendConfig{
+			Key: clerkgo.String(data.APIKey),
+		},
+	})
 }
 
 func (r *JWTTemplateResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -175,7 +179,7 @@ func (r *JWTTemplateResource) Create(ctx context.Context, req resource.CreateReq
 		params.SigningAlgorithm = clerkgo.String(plan.SigningAlgorithm.ValueString())
 	}
 
-	tmpl, err := jwttemplate.Create(ctx, params)
+	tmpl, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create JWT template", err.Error())
 		return
@@ -196,7 +200,7 @@ func (r *JWTTemplateResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	tmpl, err := jwttemplate.Get(ctx, state.ID.ValueString())
+	tmpl, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read JWT template",
@@ -247,7 +251,7 @@ func (r *JWTTemplateResource) Update(ctx context.Context, req resource.UpdateReq
 		params.SigningAlgorithm = clerkgo.String(plan.SigningAlgorithm.ValueString())
 	}
 
-	tmpl, err := jwttemplate.Update(ctx, state.ID.ValueString(), params)
+	tmpl, err := r.client.Update(ctx, state.ID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update JWT template", err.Error())
 		return
@@ -268,7 +272,7 @@ func (r *JWTTemplateResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	_, err := jwttemplate.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete JWT template",

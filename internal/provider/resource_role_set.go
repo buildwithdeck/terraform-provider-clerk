@@ -28,7 +28,7 @@ func NewRoleSetResource() resource.Resource {
 }
 
 type RoleSetResource struct {
-	configured bool
+	client *roleset.Client
 }
 
 type RoleSetResourceModel struct {
@@ -76,7 +76,11 @@ func (r *RoleSetResource) Configure(_ context.Context, req resource.ConfigureReq
 		)
 		return
 	}
-	r.configured = true
+	r.client = roleset.NewClient(&clerkgo.ClientConfig{
+		BackendConfig: clerkgo.BackendConfig{
+			Key: clerkgo.String(data.APIKey),
+		},
+	})
 }
 
 func (r *RoleSetResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -176,7 +180,7 @@ func (r *RoleSetResource) Create(ctx context.Context, req resource.CreateRequest
 	apiReq := clerkgo.NewAPIRequest(http.MethodPost, "/role_sets")
 	apiReq.SetParams(params)
 	rs := &clerkgo.RoleSet{}
-	err := clerkgo.GetBackend().Call(ctx, apiReq, rs)
+	err := r.client.Backend.Call(ctx, apiReq, rs)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create role set", err.Error())
 		return
@@ -197,7 +201,7 @@ func (r *RoleSetResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	rs, err := roleset.Get(ctx, state.ID.ValueString())
+	rs, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read role set",
@@ -242,7 +246,7 @@ func (r *RoleSetResource) Update(ctx context.Context, req resource.UpdateRequest
 		params.Type = clerkgo.String(plan.Type.ValueString())
 	}
 
-	_, err := roleset.Update(ctx, state.ID.ValueString(), params)
+	_, err := r.client.Update(ctx, state.ID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update role set", err.Error())
 		return
@@ -268,7 +272,7 @@ func (r *RoleSetResource) Update(ctx context.Context, req resource.UpdateRequest
 		updateReq := clerkgo.NewAPIRequest(http.MethodPatch, updatePath)
 		updateReq.SetParams(keysParams)
 		rs := &clerkgo.RoleSet{}
-		if err := clerkgo.GetBackend().Call(ctx, updateReq, rs); err != nil {
+		if err := r.client.Backend.Call(ctx, updateReq, rs); err != nil {
 			resp.Diagnostics.AddError("Unable to update role set keys", err.Error())
 			return
 		}
@@ -291,7 +295,7 @@ func (r *RoleSetResource) Update(ctx context.Context, req resource.UpdateRequest
 	toAdd, toRemove := diffStringSlices(oldRoles, newRoles)
 
 	if len(toAdd) > 0 {
-		_, err := roleset.AddRoles(ctx, state.ID.ValueString(), &roleset.AddRolesParams{
+		_, err := r.client.AddRoles(ctx, state.ID.ValueString(), &roleset.AddRolesParams{
 			RoleKeys: toAdd,
 		})
 		if err != nil {
@@ -301,7 +305,7 @@ func (r *RoleSetResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	if len(toRemove) > 0 {
-		_, err := roleset.RemoveRoles(ctx, state.ID.ValueString(), &roleset.RemoveRolesParams{
+		_, err := r.client.RemoveRoles(ctx, state.ID.ValueString(), &roleset.RemoveRolesParams{
 			RoleKeys: toRemove,
 		})
 		if err != nil {
@@ -311,7 +315,7 @@ func (r *RoleSetResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Re-read to get final state.
-	rs, err := roleset.Get(ctx, state.ID.ValueString())
+	rs, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to read role set after update", err.Error())
 		return
@@ -332,7 +336,7 @@ func (r *RoleSetResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	_, err := roleset.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete role set",

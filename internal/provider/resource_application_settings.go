@@ -25,7 +25,7 @@ func NewApplicationSettingsResource() resource.Resource {
 }
 
 type ApplicationSettingsResource struct {
-	configured bool
+	client *instancesettings.Client
 }
 
 type ApplicationSettingsResourceModel struct {
@@ -59,7 +59,11 @@ func (r *ApplicationSettingsResource) Configure(_ context.Context, req resource.
 		)
 		return
 	}
-	r.configured = true
+	r.client = instancesettings.NewClient(&clerk.ClientConfig{
+		BackendConfig: clerk.BackendConfig{
+			Key: clerk.String(data.APIKey),
+		},
+	})
 }
 
 func (r *ApplicationSettingsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -145,7 +149,7 @@ func (r *ApplicationSettingsResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	settings, err := instancesettings.UpdateOrganizationSettings(ctx, buildAppSettingsParams(&plan))
+	settings, err := r.client.UpdateOrganizationSettings(ctx, buildAppSettingsParams(&plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update application settings", err.Error())
 		return
@@ -169,7 +173,7 @@ func (r *ApplicationSettingsResource) Read(ctx context.Context, req resource.Rea
 
 	// The Clerk SDK has no GET endpoint for organization settings.
 	// Re-apply current state via Update to get the latest values back.
-	settings, err := instancesettings.UpdateOrganizationSettings(ctx, buildAppSettingsParams(&state))
+	settings, err := r.client.UpdateOrganizationSettings(ctx, buildAppSettingsParams(&state))
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to read application settings", err.Error())
 		return
@@ -189,7 +193,7 @@ func (r *ApplicationSettingsResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	settings, err := instancesettings.UpdateOrganizationSettings(ctx, buildAppSettingsParams(&plan))
+	settings, err := r.client.UpdateOrganizationSettings(ctx, buildAppSettingsParams(&plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update application settings", err.Error())
 		return
@@ -208,7 +212,7 @@ func (r *ApplicationSettingsResource) Delete(ctx context.Context, _ resource.Del
 	params := &instancesettings.UpdateOrganizationSettingsParams{
 		Enabled: clerk.Bool(false),
 	}
-	_, err := instancesettings.UpdateOrganizationSettings(ctx, params)
+	_, err := r.client.UpdateOrganizationSettings(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to disable application settings", err.Error())
 		return

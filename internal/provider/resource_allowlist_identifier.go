@@ -27,7 +27,7 @@ func NewAllowlistIdentifierResource() resource.Resource {
 }
 
 type AllowlistIdentifierResource struct {
-	configured bool
+	client *allowlistidentifier.Client
 }
 
 type AllowlistIdentifierResourceModel struct {
@@ -57,7 +57,7 @@ func (r *AllowlistIdentifierResource) Configure(_ context.Context, req resource.
 		)
 		return
 	}
-	r.configured = true
+	r.client = allowlistidentifier.NewClient(&clerkgo.ClientConfig{BackendConfig: clerkgo.BackendConfig{Key: clerkgo.String(data.APIKey)}})
 }
 
 func (r *AllowlistIdentifierResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -120,7 +120,7 @@ func (r *AllowlistIdentifierResource) Create(ctx context.Context, req resource.C
 		params.Notify = clerkgo.Bool(plan.Notify.ValueBool())
 	}
 
-	entry, err := allowlistidentifier.Create(ctx, params)
+	entry, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create allowlist identifier", err.Error())
 		return
@@ -141,7 +141,7 @@ func (r *AllowlistIdentifierResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	list, err := allowlistidentifier.List(ctx, &allowlistidentifier.ListParams{})
+	list, err := r.client.List(ctx, &allowlistidentifier.ListParams{})
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read allowlist identifiers",
@@ -184,7 +184,7 @@ func (r *AllowlistIdentifierResource) Delete(ctx context.Context, req resource.D
 		return
 	}
 
-	_, err := allowlistidentifier.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete allowlist identifier",

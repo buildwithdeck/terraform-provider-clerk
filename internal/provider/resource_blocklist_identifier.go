@@ -26,7 +26,7 @@ func NewBlocklistIdentifierResource() resource.Resource {
 }
 
 type BlocklistIdentifierResource struct {
-	configured bool
+	client *blocklistidentifier.Client
 }
 
 type BlocklistIdentifierResourceModel struct {
@@ -56,7 +56,7 @@ func (r *BlocklistIdentifierResource) Configure(_ context.Context, req resource.
 		)
 		return
 	}
-	r.configured = true
+	r.client = blocklistidentifier.NewClient(&clerkgo.ClientConfig{BackendConfig: clerkgo.BackendConfig{Key: clerkgo.String(data.APIKey)}})
 }
 
 func (r *BlocklistIdentifierResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -115,7 +115,7 @@ func (r *BlocklistIdentifierResource) Create(ctx context.Context, req resource.C
 		Identifier: clerkgo.String(plan.Identifier.ValueString()),
 	}
 
-	entry, err := blocklistidentifier.Create(ctx, params)
+	entry, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create blocklist identifier", err.Error())
 		return
@@ -136,7 +136,7 @@ func (r *BlocklistIdentifierResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	list, err := blocklistidentifier.List(ctx, &blocklistidentifier.ListParams{})
+	list, err := r.client.List(ctx, &blocklistidentifier.ListParams{})
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read blocklist identifiers",
@@ -179,7 +179,7 @@ func (r *BlocklistIdentifierResource) Delete(ctx context.Context, req resource.D
 		return
 	}
 
-	_, err := blocklistidentifier.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete blocklist identifier",

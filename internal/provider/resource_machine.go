@@ -27,7 +27,7 @@ func NewMachineResource() resource.Resource {
 }
 
 type MachineResource struct {
-	configured bool
+	client *machine.Client
 }
 
 type MachineResourceModel struct {
@@ -58,7 +58,11 @@ func (r *MachineResource) Configure(_ context.Context, req resource.ConfigureReq
 		)
 		return
 	}
-	r.configured = true
+	r.client = machine.NewClient(&clerkgo.ClientConfig{
+		BackendConfig: clerkgo.BackendConfig{
+			Key: clerkgo.String(data.APIKey),
+		},
+	})
 }
 
 func (r *MachineResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -127,7 +131,7 @@ func (r *MachineResource) Create(ctx context.Context, req resource.CreateRequest
 		params.DefaultTokenTTL = clerkgo.Int64(plan.DefaultTokenTTL.ValueInt64())
 	}
 
-	result, err := machine.Create(ctx, params)
+	result, err := r.client.Create(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create machine", err.Error())
 		return
@@ -151,7 +155,7 @@ func (r *MachineResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	result, err := machine.Get(ctx, state.ID.ValueString())
+	result, err := r.client.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to read machine",
@@ -189,7 +193,7 @@ func (r *MachineResource) Update(ctx context.Context, req resource.UpdateRequest
 		params.DefaultTokenTTL = clerkgo.Int64(plan.DefaultTokenTTL.ValueInt64())
 	}
 
-	result, err := machine.Update(ctx, state.ID.ValueString(), params)
+	result, err := r.client.Update(ctx, state.ID.ValueString(), params)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update machine", err.Error())
 		return
@@ -213,7 +217,7 @@ func (r *MachineResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	_, err := machine.Delete(ctx, state.ID.ValueString())
+	_, err := r.client.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete machine",

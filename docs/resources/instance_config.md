@@ -36,3 +36,13 @@ resource "clerk_instance_config" "example" {
 
 - `config_version` (String) The current version of the instance configuration, used for optimistic concurrency control.
 - `id` (String) Resource identifier in the format application_id/instance_id.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import clerk_instance_config.example <application_id>/<instance_id>
+```
