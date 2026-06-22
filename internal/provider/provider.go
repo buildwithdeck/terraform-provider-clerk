@@ -125,6 +125,7 @@ func (p *ClerkProvider) Resources(_ context.Context) []func() resource.Resource 
 		NewAPIKeyResource,
 		NewMachineResource,
 		NewSvixWebhookResource,
+		NewUserResource,
 	}
 }
 
