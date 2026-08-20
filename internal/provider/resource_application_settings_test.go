@@ -1,9 +1,13 @@
 package provider
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"testing"
 
+	"github.com/clerk/clerk-sdk-go/v2"
+	"github.com/clerk/clerk-sdk-go/v2/instancesettings"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
@@ -16,6 +20,22 @@ import (
 // API field and may be rejected on instances without the feature; it is
 // covered by the unit test instead.
 func TestAccApplicationSettingsResource(t *testing.T) {
+	// Destroying this singleton disables organizations instance-wide, which
+	// breaks every later TestAccOrganization*/TestAccRoleSet* test on the
+	// shared ephemeral instance. Re-enable them once the test is done.
+	t.Cleanup(func() {
+		client := instancesettings.NewClient(&clerk.ClientConfig{
+			BackendConfig: clerk.BackendConfig{
+				Key: clerk.String(os.Getenv("CLERK_API_KEY")),
+			},
+		})
+		if _, err := client.UpdateOrganizationSettings(context.Background(), &instancesettings.UpdateOrganizationSettingsParams{
+			Enabled: clerk.Bool(true),
+		}); err != nil {
+			t.Errorf("failed to re-enable organizations after test: %v", err)
+		}
+	})
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
