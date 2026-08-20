@@ -23,18 +23,22 @@ func TestAccApplicationSettingsResource(t *testing.T) {
 	// Destroying this singleton disables organizations instance-wide, which
 	// breaks every later TestAccOrganization*/TestAccRoleSet* test on the
 	// shared ephemeral instance. Re-enable them once the test is done.
-	t.Cleanup(func() {
-		client := instancesettings.NewClient(&clerk.ClientConfig{
-			BackendConfig: clerk.BackendConfig{
-				Key: clerk.String(os.Getenv("CLERK_API_KEY")),
-			},
+	// Gated on TF_ACC: resource.Test skips inside itself, but t.Cleanup
+	// would still run.
+	if os.Getenv("TF_ACC") != "" {
+		t.Cleanup(func() {
+			client := instancesettings.NewClient(&clerk.ClientConfig{
+				BackendConfig: clerk.BackendConfig{
+					Key: clerk.String(os.Getenv("CLERK_API_KEY")),
+				},
+			})
+			if _, err := client.UpdateOrganizationSettings(context.Background(), &instancesettings.UpdateOrganizationSettingsParams{
+				Enabled: clerk.Bool(true),
+			}); err != nil {
+				t.Errorf("failed to re-enable organizations after test: %v", err)
+			}
 		})
-		if _, err := client.UpdateOrganizationSettings(context.Background(), &instancesettings.UpdateOrganizationSettingsParams{
-			Enabled: clerk.Bool(true),
-		}); err != nil {
-			t.Errorf("failed to re-enable organizations after test: %v", err)
-		}
-	})
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
