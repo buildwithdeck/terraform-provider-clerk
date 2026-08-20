@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/clerk/clerk-sdk-go/v2"
 	"github.com/clerk/clerk-sdk-go/v2/instancesettings"
@@ -29,15 +30,16 @@ type ApplicationSettingsResource struct {
 }
 
 type ApplicationSettingsResourceModel struct {
-	ID                    types.String `tfsdk:"id"`
-	EnableOrganizations   types.Bool   `tfsdk:"enable_organizations"`
-	MaxAllowedMemberships types.Int64  `tfsdk:"max_allowed_memberships"`
-	MaxAllowedRoles       types.Int64  `tfsdk:"max_allowed_roles"`
-	MaxAllowedPermissions types.Int64  `tfsdk:"max_allowed_permissions"`
-	CreatorRole           types.String `tfsdk:"creator_role"`
-	AdminDeleteEnabled    types.Bool   `tfsdk:"admin_delete_enabled"`
-	DomainsEnabled        types.Bool   `tfsdk:"domains_enabled"`
-	DomainsDefaultRole    types.String `tfsdk:"domains_default_role"`
+	ID                         types.String `tfsdk:"id"`
+	EnableOrganizations        types.Bool   `tfsdk:"enable_organizations"`
+	MaxAllowedMemberships      types.Int64  `tfsdk:"max_allowed_memberships"`
+	MaxAllowedRoles            types.Int64  `tfsdk:"max_allowed_roles"`
+	MaxAllowedPermissions      types.Int64  `tfsdk:"max_allowed_permissions"`
+	CreatorRole                types.String `tfsdk:"creator_role"`
+	AdminDeleteEnabled         types.Bool   `tfsdk:"admin_delete_enabled"`
+	DomainsEnabled             types.Bool   `tfsdk:"domains_enabled"`
+	DomainsDefaultRole         types.String `tfsdk:"domains_default_role"`
+	ForceOrganizationSelection types.Bool   `tfsdk:"force_organization_selection"`
 }
 
 func (r *ApplicationSettingsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -137,6 +139,12 @@ func (r *ApplicationSettingsResource) Schema(_ context.Context, _ resource.Schem
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"force_organization_selection": schema.BoolAttribute{
+				Optional: true,
+				Description: "Whether users must be members of an organization to use the application " +
+					"(the dashboard's Membership required/optional toggle). Beta per Clerk's SDK. " +
+					"The Clerk API does not return this field, so drift made outside Terraform is not detected.",
+			},
 		},
 	}
 }
@@ -171,9 +179,12 @@ func (r *ApplicationSettingsResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	// The Clerk SDK has no GET endpoint for organization settings.
-	// Re-apply current state via Update to get the latest values back.
-	settings, err := r.client.UpdateOrganizationSettings(ctx, buildAppSettingsParams(&state))
+	// The Clerk SDK has no wrapper for GET /instance/organization_settings,
+	// so call the endpoint directly. Read must never write: the old
+	// PATCH-based read mutated the instance on every plan/refresh and reset
+	// dashboard-only settings (issue #29).
+	settings := &clerk.OrganizationSettings{}
+	err := r.client.Backend.Call(ctx, clerk.NewAPIRequest(http.MethodGet, "/instance/organization_settings"), settings)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to read application settings", err.Error())
 		return
@@ -233,10 +244,15 @@ func buildAppSettingsParams(model *ApplicationSettingsResourceModel) *instancese
 	if !model.DomainsEnabled.IsNull() && !model.DomainsEnabled.IsUnknown() {
 		params.DomainsEnabled = clerk.Bool(model.DomainsEnabled.ValueBool())
 	}
+	if !model.ForceOrganizationSelection.IsNull() && !model.ForceOrganizationSelection.IsUnknown() {
+		params.ForceOrganizationSelection = clerk.Bool(model.ForceOrganizationSelection.ValueBool())
+	}
 	return params
 }
 
 func mapAppSettingsResponseToModel(settings *clerk.OrganizationSettings, model *ApplicationSettingsResourceModel) {
+	// ForceOrganizationSelection is write-only: the API never returns it,
+	// so the configured value in the model is left as-is.
 	model.EnableOrganizations = types.BoolValue(settings.Enabled)
 	model.MaxAllowedMemberships = types.Int64Value(settings.MaxAllowedMemberships)
 	model.MaxAllowedRoles = types.Int64Value(settings.MaxAllowedRoles)

@@ -30,6 +30,7 @@ resource "clerk_application_settings" "this" {
 
 - `admin_delete_enabled` (Boolean) Whether administrators can delete organizations.
 - `domains_enabled` (Boolean) Whether domain-based organization enrollment is enabled.
+- `force_organization_selection` (Boolean) Whether users must be members of an organization to use the application (the dashboard's Membership required/optional toggle). Beta per Clerk's SDK. The Clerk API does not return this field, so drift made outside Terraform is not detected.
 - `max_allowed_memberships` (Number) Default maximum number of memberships allowed per organization.
 
 ### Read-Only
