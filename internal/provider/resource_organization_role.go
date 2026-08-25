@@ -36,7 +36,7 @@ type OrganizationRoleResourceModel struct {
 	Name               types.String `tfsdk:"name"`
 	Key                types.String `tfsdk:"key"`
 	Description        types.String `tfsdk:"description"`
-	Permissions        types.List   `tfsdk:"permissions"`
+	Permissions        types.Set    `tfsdk:"permissions"`
 	IsCreatorEligible  types.Bool   `tfsdk:"is_creator_eligible"`
 	CreatedAt          types.String `tfsdk:"created_at"`
 	UpdatedAt          types.String `tfsdk:"updated_at"`
@@ -91,10 +91,10 @@ func (r *OrganizationRoleResource) Schema(_ context.Context, _ resource.SchemaRe
 				Optional:    true,
 				Description: "Description of the role.",
 			},
-			"permissions": schema.ListAttribute{
+			"permissions": schema.SetAttribute{
 				Optional:    true,
 				ElementType: types.StringType,
-				Description: "List of permission IDs to assign to this role.",
+				Description: "Set of permission IDs to assign to this role.",
 			},
 			"is_creator_eligible": schema.BoolAttribute{
 				Computed:    true,
@@ -270,11 +270,11 @@ func mapOrganizationRoleResponseToModel(ctx context.Context, role *clerkgo.Organ
 		for i, p := range role.Permissions {
 			permIDs[i] = p.ID
 		}
-		permList, d := types.ListValueFrom(ctx, types.StringType, permIDs)
+		permList, d := types.SetValueFrom(ctx, types.StringType, permIDs)
 		diags.Append(d...)
 		model.Permissions = permList
 	} else if !model.Permissions.IsNull() {
 		// Preserve empty list if it was explicitly set
-		model.Permissions, _ = types.ListValueFrom(ctx, types.StringType, []string{})
+		model.Permissions, _ = types.SetValueFrom(ctx, types.StringType, []string{})
 	}
 }
