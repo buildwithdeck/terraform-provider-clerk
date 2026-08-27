@@ -37,3 +37,6 @@ crash.log
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Claude Code local settings — may contain secrets, never commit
+.claude/settings.local.json
