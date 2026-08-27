@@ -31,6 +31,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          # Deliberate opt-in: the pwn-request risk this guard targets is
+          # mitigated by the safe-to-test label gate (a maintainer reviews the
+          # exact SHA before secrets run against it; label self-removes).
+          allow-unsafe-pr-checkout: true
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
