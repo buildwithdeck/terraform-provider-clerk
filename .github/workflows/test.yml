@@ -20,6 +20,10 @@ jobs:
 
   acceptance:
     needs: build
+    # Fork PRs never receive repository secrets, so the acceptance run would
+    # fail before compiling a single test. Skip it there; maintainers run it
+    # via the safe-to-test label (see acceptance-fork.yml).
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

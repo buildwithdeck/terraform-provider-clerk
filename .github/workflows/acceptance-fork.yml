@@ -1,0 +1,61 @@
+# Maintainer-gated acceptance run for fork PRs.
+#
+# Fork pull_request runs never receive secrets, so test.yml skips acceptance
+# for them. This workflow runs acceptance WITH secrets via pull_request_target,
+# gated on a maintainer applying the `safe-to-test` label AFTER reviewing the
+# diff — the review is the security boundary, because the contributor's code
+# executes with CLERK_PLATFORM_API_KEY in the environment.
+#
+# Safety properties:
+# - Triggers only on the `safe-to-test` label being applied by someone with
+#   triage+ permission.
+# - Checks out the exact head SHA the PR had when labeled; a later push cannot
+#   swap in unreviewed code.
+# - Removes the label at the end (pass or fail), so every new push requires a
+#   fresh review + re-label before secrets touch the code again.
+name: Acceptance (fork PRs)
+
+on:
+  pull_request_target:
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: write # remove the label + comment the result
+
+jobs:
+  acceptance:
+    if: github.event.label.name == 'safe-to-test'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Run acceptance tests
+        run: go test ./internal/provider/ -v -timeout 300s
+        env:
+          TF_ACC: "1"
+          CLERK_PLATFORM_API_KEY: ${{ secrets.CLERK_PLATFORM_API_KEY }}
+      - name: Remove safe-to-test label
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr edit "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --remove-label safe-to-test
+      - name: Comment result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "Acceptance tests (maintainer-triggered) for ${{ github.event.pull_request.head.sha }}: **${{ job.status }}** — [run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
