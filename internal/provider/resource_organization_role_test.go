@@ -137,6 +137,11 @@ func testAccOrganizationRolePermsOrderConfig(first, second, third string) string
 		"b": "clerk_organization_permission.perm_b.id",
 		"c": "clerk_organization_permission.perm_c.id",
 	}
+	// The permissions are chained with depends_on so Terraform creates them
+	// sequentially: Clerk's API returns HTTP 500 (internal_clerk_error,
+	// "Unable to create organization permission") when several permissions are
+	// created concurrently, which is what Terraform would do by default for
+	// three resources with no dependencies between them.
 	return fmt.Sprintf(`
 resource "clerk_organization_permission" "perm_a" {
   name = "Order Test A"
@@ -146,11 +151,15 @@ resource "clerk_organization_permission" "perm_a" {
 resource "clerk_organization_permission" "perm_b" {
   name = "Order Test B"
   key  = "org:order_test:b"
+
+  depends_on = [clerk_organization_permission.perm_a]
 }
 
 resource "clerk_organization_permission" "perm_c" {
   name = "Order Test C"
   key  = "org:order_test:c"
+
+  depends_on = [clerk_organization_permission.perm_b]
 }
 
 resource "clerk_organization_role" "order_test" {

@@ -32,14 +32,14 @@ type OrganizationRoleResource struct {
 }
 
 type OrganizationRoleResourceModel struct {
-	ID                 types.String `tfsdk:"id"`
-	Name               types.String `tfsdk:"name"`
-	Key                types.String `tfsdk:"key"`
-	Description        types.String `tfsdk:"description"`
-	Permissions        types.Set    `tfsdk:"permissions"`
-	IsCreatorEligible  types.Bool   `tfsdk:"is_creator_eligible"`
-	CreatedAt          types.String `tfsdk:"created_at"`
-	UpdatedAt          types.String `tfsdk:"updated_at"`
+	ID                types.String `tfsdk:"id"`
+	Name              types.String `tfsdk:"name"`
+	Key               types.String `tfsdk:"key"`
+	Description       types.String `tfsdk:"description"`
+	Permissions       types.Set    `tfsdk:"permissions"`
+	IsCreatorEligible types.Bool   `tfsdk:"is_creator_eligible"`
+	CreatedAt         types.String `tfsdk:"created_at"`
+	UpdatedAt         types.String `tfsdk:"updated_at"`
 }
 
 func (r *OrganizationRoleResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
