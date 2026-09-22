@@ -32,7 +32,7 @@ resource "clerk_organization_role" "editor" {
 ### Optional
 
 - `description` (String) Description of the role.
-- `permissions` (List of String) List of permission IDs to assign to this role.
+- `permissions` (Set of String) Set of permission IDs to assign to this role.
 
 ### Read-Only
 

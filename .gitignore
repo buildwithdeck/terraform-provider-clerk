@@ -40,3 +40,6 @@ crash.log
 
 # Claude Code local settings — may contain secrets, never commit
 .claude/settings.local.json
+
+# Built provider binary
+bin/
